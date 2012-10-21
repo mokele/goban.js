@@ -1,0 +1,17 @@
+.xgoban {
+    position: relative;
+    background: #DCB35C;
+}
+.xgoban .stone,
+.xgoban .overlay {
+    position: absolute;
+}
+.xgoban .ghost {
+    opacity:0.5;
+}
+.xgoban .stone {
+    z-index: 50;
+}
+.xgoban .overlay {
+    z-index: 100;
+}

@@ -290,6 +290,13 @@ var XGoban = function(sel, opts) {
             repositionPoint(i);
         }
     };
+
+    var hideGhostElements = function() {
+        for(var k in ghostElements) {
+            ghostElements[k].remove();
+        }
+    };
+
     var draw = function() {};
 
     var recalculateSize = function() {
@@ -400,12 +407,6 @@ var XGoban = function(sel, opts) {
 
     var pointToCoord = function(point) {
         return "A1";
-    };
-
-    var hideGhostElements = function() {
-        for(var k in ghostElements) {
-            ghostElements[k].remove();
-        }
     };
 
     var setPointOverlay = function(pointIndex, overlayFun) {

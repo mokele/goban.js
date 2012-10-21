@@ -364,22 +364,28 @@ var XGoban = function(sel, opts) {
                 var el = ghostElement();
                 element.append(el);
 
-                el.click(function(e) {
-                    if(!enabled) {
-                        return;
-                    }
-                    var x = e.pageX - containerOffset.left;
-                    var y = e.pageY - containerOffset.top;
-                    var point = getPoint(x, y);
-                    if(!point) {
-                        return;
-                    }
-                    place(point.point, turn, true);
-                    callbacks.fire('placed', {
-                        point: point.point,
-                        stone: turn
+                if(!el.data('stoneHandler')) {
+                    el.data('stoneHandler', true);
+                    el.click(function(e) {
+                        if(!enabled) {
+                            return;
+                        }
+                        var x = e.pageX - containerOffset.left;
+                        var y = e.pageY - containerOffset.top;
+                        var point = getPoint(x, y);
+                        if(!point) {
+                            return;
+                        }
+                        e.stopPropagation();
+                        e.preventDefault();
+                        place(point.point, turn, true);
+                        callbacks.fire('placed', {
+                            point: point.point,
+                            stone: turn
+                        });
+                        return false;
                     });
-                });
+                }
             } else {
                 ghostElement().remove();
             }

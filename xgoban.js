@@ -511,3 +511,34 @@ var XGoban = function(sel, opts) {
         pointToCoord: pointToCoord
     };
 };
+XGoban.geometry = {
+    square: function(size) {
+        var points = [];
+        var dimension = size * 2 + 2;
+        var neighbours = function(x, y, i) {
+            var points = [];
+            if(y != 0) {
+                points.push(i - size);
+            }
+            if(x != 0) {
+                points.push(i - 1);
+            }
+            if(x != size - 1) {
+                points.push(i + 1);
+            }
+            if(y != size - 1) {
+                points.push(i + size);
+            }
+            return points;
+        };
+        for(var y=0, i=0; y<size; y++) {
+            for(var x=0; x<size; x++, i++) {
+                points.push([(x+1)*2, (y+1)*2, neighbours(x, y, i)]);
+            }
+        }
+        return {
+            width: dimension, height: dimension,
+            points: points
+        };
+    }
+};

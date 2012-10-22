@@ -58,6 +58,7 @@ var XGoban = function(sel, opts) {
     $.extend(defaultOpts, opts);
     opts = defaultOpts;
 
+    var self = {};
     var container = $(sel);
     var element;
     var svg = null;
@@ -124,7 +125,7 @@ var XGoban = function(sel, opts) {
     var place = function(pointIndex, stone, focus) {
         var point = points[pointIndex];
         if(point.stone) {
-            return;
+            return false;
         }
         var placedElement = ghostElements[stone].clone(true);
         placedElement.removeClass('ghost');
@@ -152,6 +153,11 @@ var XGoban = function(sel, opts) {
             lastFocusedElement = focusElement;
             lastFocusedPoint = point;
         }
+        if(opts.rules) {
+            return opts.rules.check(self, point.point);
+        } else {
+            return true;
+        }
     };
     var clearPoint = function(index) {
         var point = points[index];
@@ -159,6 +165,11 @@ var XGoban = function(sel, opts) {
             point.element.remove();
             point.element = null;
             point.stone = null;
+        }
+        if(lastFocusedPoint && index == lastFocusedPoint.point) {
+            lastFocusedElement.remove();
+            lastFocusedElement = null;
+            lastFocusedPoint = null;
         }
     };
     var clear = function(index) {
@@ -209,6 +220,34 @@ var XGoban = function(sel, opts) {
                 }
             }
             return thisConnected;
+        };
+    };
+
+    var connectedPoints = function(point, withStone) {
+        var seen = [point];
+        var connectedPoints = [point];
+        var neighbours = points[point].neighbours.slice(0);
+        var liberties = 0;
+        var pStone = withStone ? withStone : points[point].stone;
+        for(var i=0; i<neighbours.length; i++) {
+            var neighbour = neighbours[i];
+            if(seen.indexOf(neighbour) > -1) {
+                continue;
+            }
+            seen.push(neighbour);// definitely a better way to do this due to prior path
+            var nStone = points[neighbour].stone;
+            if(!nStone) {
+                liberties++; // empty point
+            } else if(pStone && nStone== pStone) {
+                connectedPoints.push(neighbour);
+                for(var m=0; m<points[neighbour].neighbours.length; m++) {
+                    neighbours.push(points[neighbour].neighbours[m]);
+                }
+            }
+        }
+        return {
+            liberties: liberties,
+            connectedPoints: connectedPoints
         };
     };
     var setupPoints = function() {
@@ -433,7 +472,7 @@ var XGoban = function(sel, opts) {
         point.overlay = overlay;
     };
 
-    return {
+    return $.extend(self, {
         svg: opts.svg,
         geometry: opts.geometry,
         points: points,
@@ -456,6 +495,7 @@ var XGoban = function(sel, opts) {
             enabled = true;
         },
         placed: callbacks.callback('placed'),
+        connectedPoints: connectedPoints,
         removeCallback: callbacks.removeCallback,
         clear: clear,
         focus: function(point) {
@@ -509,7 +549,78 @@ var XGoban = function(sel, opts) {
         },
 
         pointToCoord: pointToCoord
-    };
+    });
+};
+XGoban.geometry = {
+    square: function(size) {
+        var points = [];
+        var dimension = size * 2 + 2;
+        var neighbours = function(x, y, i) {
+            var points = [];
+            if(y != 0) {
+                points.push(i - size);
+            }
+            if(x != 0) {
+                points.push(i - 1);
+            }
+            if(x != size - 1) {
+                points.push(i + 1);
+            }
+            if(y != size - 1) {
+                points.push(i + size);
+            }
+            return points;
+        };
+        for(var y=0, i=0; y<size; y++) {
+            for(var x=0; x<size; x++, i++) {
+                points.push([(x+1)*2, (y+1)*2, neighbours(x, y, i)]);
+            }
+        }
+        return {
+            width: dimension, height: dimension,
+            points: points
+        };
+    }
+};
+XGoban.rules = {
+    japanese: function() {
+        return {
+            check: function(goban, point) {
+                var stone = goban.points[point].stone;
+                var neighbours = goban.points[point].neighbours;
+                var ownLiberties = goban.connectedPoints(point).liberties;
+                var takenPoints = [];
+                for(var i=0; i<neighbours.length; i++) {
+                    var neighbour = neighbours[i];
+                    var nStone = goban.points[neighbour].stone;
+                    if(!nStone) {
+                        continue;
+                    }
+                    var connected = goban.connectedPoints(neighbour);
+                    if(connected.liberties == 0 && nStone!= stone) {
+                        for(var ci=0; ci<connected.connectedPoints.length; ci++) {
+                            var c = connected.connectedPoints[ci];
+                            goban.clear(c);
+                            takenPoints.push(c);
+                        }
+                    }
+                }
+                if(ownLiberties == 0 && takenPoints.length == 0) {
+                    goban.clear(point);
+                    //todo: replace ghost
+                    //point.placeGhostStone(stone);
+                    return false;
+                } else {
+                    return {
+                        point: point,
+                        stone: stone,
+                        liberties: ownLiberties,
+                        takenPoints: takenPoints
+                    };
+                }
+            }
+        };
+    }
 };
 XGoban.geometry = {
     square: function(size) {

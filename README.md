@@ -10,6 +10,7 @@ var goban = XGoban('#goban', {
         var tile = color == 'BLACK' ? 'b' : 'w';
         return $('<img src="http://mokele.github.com/go-svg/Go_placed' + tile + '.svg" class="overlay"/>');
     },
+    rules: XGoban.rules.japanese(),
     geometry: {
         width: 10, height: 10,
         points: [

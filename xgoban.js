@@ -127,37 +127,39 @@ var XGoban = function(sel, opts) {
         if(point.stone) {
             return false;
         }
-        var placedElement = ghostElements[stone].clone(true);
-        placedElement.removeClass('ghost');
-        point.stone = stone;
-        point.element = placedElement;
-        repositionPoint(pointIndex);
-
-        element.append(point.element);
-
-        if(focus === true) {
-            if(lastFocusedPoint) {
-                lastFocusedElement.remove();
-                lastFocusedElement = null;
-                lastFocusedPoint = null;
-            }
-            var focusElement = opts.focusElement(stone);
-            var diameter = point.radius * 2;
-            focusElement.width(diameter);
-            focusElement.height(diameter);
-            focusElement.css({
-                left: point.x - point.radius,
-                top: point.y - point.radius
-            });
-            element.append(focusElement);
-            lastFocusedElement = focusElement;
-            lastFocusedPoint = point;
-        }
+        var ret = true;
         if(opts.rules) {
-            return opts.rules.check(self, point.point);
-        } else {
-            return true;
+            ret = opts.rules.check(self, point.point);
         }
+        if(ret) {
+            var placedElement = ghostElements[stone].clone(true);
+            placedElement.removeClass('ghost');
+            point.stone = stone;
+            point.element = placedElement;
+            repositionPoint(pointIndex);
+
+            element.append(point.element);
+
+            if(focus === true) {
+                if(lastFocusedPoint) {
+                    lastFocusedElement.remove();
+                    lastFocusedElement = null;
+                    lastFocusedPoint = null;
+                }
+                var focusElement = opts.focusElement(stone);
+                var diameter = point.radius * 2;
+                focusElement.width(diameter);
+                focusElement.height(diameter);
+                focusElement.css({
+                    left: point.x - point.radius,
+                    top: point.y - point.radius
+                });
+                element.append(focusElement);
+                lastFocusedElement = focusElement;
+                lastFocusedPoint = point;
+            }
+        }
+        return ret;
     };
     var clearPoint = function(index) {
         var point = points[index];
@@ -417,11 +419,12 @@ var XGoban = function(sel, opts) {
                         }
                         e.stopPropagation();
                         e.preventDefault();
-                        place(point.point, turn, true);
-                        callbacks.fire('placed', {
-                            point: point.point,
-                            stone: turn
-                        });
+                        if(place(point.point, turn, true)) {
+                            callbacks.fire('placed', {
+                                point: point.point,
+                                stone: turn
+                            });
+                        }
                         return false;
                     });
                 }

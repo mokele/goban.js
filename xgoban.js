@@ -436,6 +436,7 @@ var XGoban = function(sel, opts) {
     return {
         svg: opts.svg,
         geometry: opts.geometry,
+        points: points,
         type: 'x',
         size: function() {
             return 19; // todo: not all gobans have size

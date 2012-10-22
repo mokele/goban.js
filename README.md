@@ -31,3 +31,6 @@ var goban = XGoban('#goban', {
         ]
     }
 });
+goban.placed(function(point) {
+    goban.setTurn(point.stone == 'BLACK' ? 'WHITE' : 'BLACK');
+});

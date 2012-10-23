@@ -432,6 +432,18 @@ var XGoban = function(sel, opts) {
                 ghostElement().remove();
             }
         });
+        $(document.body).mousemove(function(e) {
+            var containerOffset = container.offset();
+            var pageX = e.pageX;
+            var pageY = e.pageY;
+            if(pageX < containerOffset.left
+               || pageX > containerOffset.left + container.outerWidth()
+               || pageY < containerOffset.top
+               || pageY > containerOffset.top + container.outerHeight())
+            {
+                hideGhostElements();
+            }
+        });
         $(document.body).click(function(e) {
             if(!stateEditable) {
                 return;

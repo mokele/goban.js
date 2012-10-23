@@ -605,9 +605,9 @@ XGoban.geometry = {
 };
 XGoban.rules = {
     japanese: function() {
-        var reprs = []; // board state per move for superko check
+        var reprs = []; // board state per move for ko check
 
-        var checkSuperKO = function(goban) {
+        var checkKO = function(goban) {
             var repr = goban.repr();
             var valid = true;
             if(reprs.length > 2) {
@@ -659,10 +659,10 @@ XGoban.rules = {
             if(outcome === false) {
                 return false; // suicide
             } else {
-                if(checkSuperKO(goban)) {
+                if(checkKO(goban)) {
                     return outcome;
                 } else {
-                    console.log("superko");
+                    console.log("ko");
                     var color = goban.points[point].stone;
                     var oppositeColor = color == 'BLACK' ? 'WHITE' : 'BLACK';
                     goban.clear(point);

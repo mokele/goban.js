@@ -122,7 +122,7 @@ var XGoban = function(sel, opts) {
             repositionElement(point.overlay.element, point);
         }
     };
-    var place = function(pointIndex, stone, focus) {
+    var place = function(pointIndex, stone, focus, check) {
         var point = points[pointIndex];
         if(point.stone) {
             return false;
@@ -153,7 +153,7 @@ var XGoban = function(sel, opts) {
             lastFocusedElement = focusElement;
             lastFocusedPoint = point;
         }
-        if(opts.rules) {
+        if(opts.rules && check !== false) {
             return opts.rules.check(self, point.point);
         } else {
             return true;
@@ -417,11 +417,14 @@ var XGoban = function(sel, opts) {
                         }
                         e.stopPropagation();
                         e.preventDefault();
-                        place(point.point, turn, true);
-                        callbacks.fire('placed', {
-                            point: point.point,
-                            stone: turn
-                        });
+                        var moveOutcome = place(point.point, turn, true);
+                        if(moveOutcome) {
+                            callbacks.fire('placed', {
+                                point: point.point,
+                                stone: turn
+                            });
+                        }
+                        // todo: publish error event
                         return false;
                     });
                 }
@@ -472,10 +475,28 @@ var XGoban = function(sel, opts) {
         point.overlay = overlay;
     };
 
+    var pointRepr = function(stone) {
+        if(stone == 'BLACK') {
+            return 1;
+        } else if(stone == 'WHITE') {
+            return 2;
+        } else {
+            return 0;
+        }
+    };
+    var repr = function() {
+        var repr = "";
+        for(var i=0; i<points.length; i++) {
+            repr += pointRepr(points[i].stone);
+        }
+        return repr;
+    };
+
     return $.extend(self, {
         svg: opts.svg,
         geometry: opts.geometry,
         points: points,
+        repr: repr,
         type: 'x',
         size: function() {
             return 19; // todo: not all gobans have size
@@ -584,41 +605,78 @@ XGoban.geometry = {
 };
 XGoban.rules = {
     japanese: function() {
-        return {
-            check: function(goban, point) {
-                var stone = goban.points[point].stone;
-                var neighbours = goban.points[point].neighbours;
-                var ownLiberties = goban.connectedPoints(point).liberties;
-                var takenPoints = [];
-                for(var i=0; i<neighbours.length; i++) {
-                    var neighbour = neighbours[i];
-                    var nStone = goban.points[neighbour].stone;
-                    if(!nStone) {
-                        continue;
-                    }
-                    var connected = goban.connectedPoints(neighbour);
-                    if(connected.liberties == 0 && nStone!= stone) {
-                        for(var ci=0; ci<connected.connectedPoints.length; ci++) {
-                            var c = connected.connectedPoints[ci];
-                            goban.clear(c);
-                            takenPoints.push(c);
-                        }
-                    }
+        var reprs = []; // board state per move for superko check
+
+        var checkSuperKO = function(goban) {
+            var repr = goban.repr();
+            var valid = true;
+            if(reprs.length > 2) {
+                var checkRepr = reprs[reprs.length-2];
+                valid = checkRepr != repr;
+                // todo: situational ko
+            }
+            if(valid) {
+                reprs.push(repr);
+            }
+            return valid;
+        };
+        var checkSuicide = function(goban, point) {
+            var stone = goban.points[point].stone;
+            var neighbours = goban.points[point].neighbours;
+            var ownLiberties = goban.connectedPoints(point).liberties;
+            var takenPoints = [];
+            for(var i=0; i<neighbours.length; i++) {
+                var neighbour = neighbours[i];
+                var nStone = goban.points[neighbour].stone;
+                if(!nStone) {
+                    continue;
                 }
-                if(ownLiberties == 0 && takenPoints.length == 0) {
-                    goban.clear(point);
-                    //todo: replace ghost
-                    //point.placeGhostStone(stone);
-                    return false;
-                } else {
-                    return {
-                        point: point,
-                        stone: stone,
-                        liberties: ownLiberties,
-                        takenPoints: takenPoints
-                    };
+                var connected = goban.connectedPoints(neighbour);
+                if(connected.liberties == 0 && nStone != stone) {
+                    for(var ci=0; ci<connected.connectedPoints.length; ci++) {
+                        var c = connected.connectedPoints[ci];
+                        goban.clear(c);
+                        takenPoints.push(c);
+                    }
                 }
             }
+            if(ownLiberties == 0 && takenPoints.length == 0) {
+                goban.clear(point);
+                //todo: replace ghost
+                //point.placeGhostStone(stone);
+                return false;
+            } else {
+                return {
+                    point: point,
+                    stone: stone,
+                    liberties: ownLiberties,
+                    takenPoints: takenPoints
+                };
+            }
+        };
+        var check = function(goban, point) {
+            var outcome = checkSuicide(goban, point);
+            if(outcome === false) {
+                return false; // suicide
+            } else {
+                if(checkSuperKO(goban)) {
+                    return outcome;
+                } else {
+                    console.log("superko");
+                    var color = goban.points[point].stone;
+                    var oppositeColor = color == 'BLACK' ? 'WHITE' : 'BLACK';
+                    goban.clear(point);
+                    // todo: takenPoints needs color for multiple color support
+                    for(var i=0; i<outcome.takenPoints.length; i++) {
+                        var takenPoint = outcome.takenPoints[i];
+                        goban.place(takenPoint, oppositeColor, false, false);
+                    }
+                    return false;
+                }
+            }
+        };
+        return {
+            check: check
         };
     }
 };

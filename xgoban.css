@@ -15,3 +15,6 @@
 .xgoban .overlay {
     z-index: 100;
 }
+.xgoban .number {
+    display: none;
+}

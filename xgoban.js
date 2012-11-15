@@ -148,7 +148,7 @@ var XGoban = function(sel, opts) {
         var height;
         var width = height = point.radius * 2;
         var numberElement = $('<div class="number"></div>');
-        var numberText = ''+(number++)
+        var numberText = ''+(number++);
         numberElement.text(numberText);
         var fontSize = point.radius;
         var oppositeColor = stone == 'BLACK' ? 'WHITE' : 'BLACK';
@@ -164,6 +164,9 @@ var XGoban = function(sel, opts) {
             width: width,
             height: height
         });
+        if($('.number', element).is(':visible')) {
+            numberElement.show();
+        }
         element.append(numberElement);
         point.numberElement = numberElement;
 

@@ -121,7 +121,17 @@ var XGoban = function(sel, opts) {
         if(point.overlay) {
             repositionElement(point.overlay.element, point);
         }
+        if(point.numberElement) {
+            repositionElement(point.numberElement, point);
+            var width = height = point.radius * 2;
+            var fontSize = point.radius;
+            point.numberElement.css({
+                fontSize: fontSize+'px',
+                lineHeight: height+'px'
+            });
+        }
     };
+    var number = 1;
     var place = function(pointIndex, stone, focus, check) {
         var point = points[pointIndex];
         if(point.stone) {
@@ -134,6 +144,31 @@ var XGoban = function(sel, opts) {
         repositionPoint(pointIndex);
 
         element.append(point.element);
+
+        var height;
+        var width = height = point.radius * 2;
+        var numberElement = $('<div class="number"></div>');
+        var numberText = ''+(number++);
+        numberElement.text(numberText);
+        var fontSize = point.radius;
+        var oppositeColor = stone == 'BLACK' ? 'WHITE' : 'BLACK';
+        numberElement.css({
+            lineHeight: height+'px',
+            zIndex: 100,
+            color: oppositeColor.toLowerCase(),
+            fontSize: fontSize+'px',
+            textAlign: 'center',
+            position: 'absolute',
+            left: point.x - point.radius,
+            top: point.y - point.radius,
+            width: width,
+            height: height
+        });
+        if($('.number', element).is(':visible')) {
+            numberElement.show();
+        }
+        element.append(numberElement);
+        point.numberElement = numberElement;
 
         if(focus === true) {
             if(lastFocusedPoint) {
@@ -170,6 +205,10 @@ var XGoban = function(sel, opts) {
             lastFocusedElement.remove();
             lastFocusedElement = null;
             lastFocusedPoint = null;
+        }
+        if(point.numberElement) {
+            point.numberElement.remove();
+            point.numberElement = null;
         }
     };
     var clear = function(index) {
@@ -372,7 +411,7 @@ var XGoban = function(sel, opts) {
         draw();
     };
 
-    $(function() {
+    (function() {
         element = $('<div class="xgoban"></div>');
         if(opts.svg) {
             svg = $('<img />');
@@ -463,7 +502,7 @@ var XGoban = function(sel, opts) {
 
         setupPoints();
         fit();
-    });
+    })();
 
     var pointToCoord = function(point) {
         return "A1";

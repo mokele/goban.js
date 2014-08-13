@@ -213,7 +213,7 @@ var XGoban = function(sel, opts) {
     };
     var clear = function(index) {
         if(index === undefined) {
-            for(var k in points) {
+            for(var k=0; k<points.length; k++) {
                 clearPoint(k);
             }
         } else {
@@ -335,9 +335,9 @@ var XGoban = function(sel, opts) {
     };
     var recalculatePointRadius = function() {
         var minDistance = false;
-        for(var i in points) {
+        for(var i=0; i<points.length; i++) {
             var point = points[i];
-            for(var j in point.neighbours) {
+            for(var j=0; j<point.neighbours.length; j++) {
                 var neighbour = points[point.neighbours[j]];
                 var diffx = Math.abs(point.x - neighbour.x);
                 var diffy = Math.abs(point.y - neighbour.y);
@@ -346,7 +346,7 @@ var XGoban = function(sel, opts) {
             }
         }
         var pointRadius = minDistance / 2;
-        for(var i in points) {
+        for(var i=0; i<points.length; i++) {
             var point = points[i];
             var x = point.x;
             var y = point.y;
@@ -392,7 +392,7 @@ var XGoban = function(sel, opts) {
             height: height
         });
         var ratio = width / opts.geometry.width;
-        for(var i in points) {
+        for(var i=0; i<points.length; i++) {
             var point = points[i];
             point.x = point.originalX * ratio;
             point.y = point.originalY * ratio;
@@ -505,7 +505,12 @@ var XGoban = function(sel, opts) {
     })();
 
     var pointToCoord = function(point) {
-        return "A1";
+        var numPoints = points.length;
+        var root = Math.sqrt(numPoints);
+        var letters = ["A","B","C","D","E","F","G","H","J","K","L","M","N","O","P","Q","R","S","T"];
+        var x = point % root;
+        var number = root - ((point - (point % root)) / root);
+        return letters[x] + number;
     };
 
     var setPointOverlay = function(pointIndex, overlayFun) {
@@ -582,7 +587,7 @@ var XGoban = function(sel, opts) {
                 lastFocusedElement = null;
                 lastFocusedPoint = null;
             }
-            for(var k in points) {
+            for(var k=0; k<points.length; k++) {
                 if(points[k].overlay) {
                     points[k].overlay.element.remove();
                     delete points[k].overlay;

@@ -307,15 +307,28 @@ var XGoban = function(sel, opts) {
             point.y = y;
             points[i] = point;
         }
+        if(opts.geometry.stars) {
+            for(var i=0; i<opts.geometry.stars.length; i++) {
+                var star = opts.geometry.stars[i];
+                points[star].hasStar = true;
+            }
+        }
         if(!opts.svg) {
             var ctx = canvas[0].getContext("2d");
             draw = function() {
-                ctx.strokeStyle = '#000';
-                ctx.lineWidth = 1.5;
+                ctx.strokeStyle = '#222';
+                ctx.lineWidth = 1;
                 ctx.clearRect(0, 0, width, height);
                 var lines = {};
                 for(var i=0; i<points.length; i++) {
                     var point = points[i];
+                    if(point.hasStar) {
+                        ctx.beginPath();
+                        ctx.arc(point.x, point.y, point.radius*0.2, 0, 2 * Math.PI, false);
+                        ctx.fillStyle = '#222';
+                        ctx.fill();
+                    }
+
                     for(var j=0; j<point.neighbours.length; j++) {
                         var neighbour = points[point.neighbours[j]];
                         var key = Math.min(point.point, neighbour.point)
@@ -653,9 +666,18 @@ XGoban.geometry = {
                 points.push([(x+1)*2, (y+1)*2, neighbours(x, y, i)]);
             }
         }
+        var stars = [];
+        if(size==9) {
+            stars = [20, 24, 56, 60];
+        } else if(size==13) {
+            stars = [42,45,48,81,84,87,120,123,126];
+        } else if(size==19) {
+            stars = [294,300,186,180,174,288,66,72,60];
+        }
         return {
             width: dimension, height: dimension,
-            points: points
+            points: points,
+            stars: stars
         };
     }
 };

@@ -315,6 +315,7 @@ var XGoban = function(sel, opts) {
         }
         if(!opts.svg) {
             var ctx = canvas[0].getContext("2d");
+            //ctx.translate(0.5, 0.5);
             draw = function() {
                 ctx.strokeStyle = '#222';
                 ctx.lineWidth = 1;
@@ -324,7 +325,7 @@ var XGoban = function(sel, opts) {
                     var point = points[i];
                     if(point.hasStar) {
                         ctx.beginPath();
-                        ctx.arc(point.x, point.y, point.radius*0.2, 0, 2 * Math.PI, false);
+                        ctx.arc(point.x+0.5, point.y+0.5, point.radius*0.25, 0, 2 * Math.PI, false);
                         ctx.fillStyle = '#222';
                         ctx.fill();
                     }
@@ -336,8 +337,8 @@ var XGoban = function(sel, opts) {
                         if(!lines[key]) {
                             lines[key] = true
                             ctx.beginPath();
-                            ctx.moveTo(point.x, point.y);
-                            ctx.lineTo(neighbour.x, neighbour.y);
+                            ctx.moveTo(point.x+0.5, point.y+0.5);
+                            ctx.lineTo(neighbour.x+0.5, neighbour.y+0.5);
                             ctx.closePath();
                             ctx.stroke();
                         }
@@ -404,11 +405,20 @@ var XGoban = function(sel, opts) {
             width: width,
             height: height
         });
-        var ratio = width / opts.geometry.width;
+        var ratioX = width / opts.geometry.width;
+        var ratioY = height / opts.geometry.height;
         for(var i=0; i<points.length; i++) {
             var point = points[i];
-            point.x = point.originalX * ratio;
-            point.y = point.originalY * ratio;
+            point.x = point.originalX * ratioX;
+            point.x = Math.round(point.x*2)/2;
+            if((point.x/0.5) % 2 == 1) {
+                point.x += 0.5;
+            }
+            point.y = point.originalY * ratioY;
+            point.y = Math.round(point.y*2)/2;
+            if((point.y/0.5) % 2 == 1) {
+                point.y += 0.5;
+            }
             /*point.radius = point.originalRadius * ratio;
             point.hitArea.x = point.originalHitArea.x * ratio;
             point.hitArea.y = point.originalHitArea.y * ratio;
@@ -644,7 +654,8 @@ var XGoban = function(sel, opts) {
 XGoban.geometry = {
     square: function(size) {
         var points = [];
-        var dimension = size * 2 + 2;
+        var height = (size*2) + 4;
+        var width = (size*2) + 4;
         var neighbours = function(x, y, i) {
             var points = [];
             if(y != 0) {
@@ -663,7 +674,7 @@ XGoban.geometry = {
         };
         for(var y=0, i=0; y<size; y++) {
             for(var x=0; x<size; x++, i++) {
-                points.push([(x+1)*2, (y+1)*2, neighbours(x, y, i)]);
+                points.push([((x+1.5*0.95)*2), ((y+1.5)*2), neighbours(x, y, i)]);
             }
         }
         var stars = [];
@@ -675,7 +686,7 @@ XGoban.geometry = {
             stars = [294,300,186,180,174,288,66,72,60];
         }
         return {
-            width: dimension, height: dimension,
+            width: width, height: height,
             points: points,
             stars: stars
         };

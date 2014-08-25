@@ -325,7 +325,7 @@ var XGoban = function(sel, opts) {
                     var point = points[i];
                     if(point.hasStar) {
                         ctx.beginPath();
-                        ctx.arc(point.x+0.5, point.y+0.5, point.radius*0.25, 0, 2 * Math.PI, false);
+                        ctx.arc(point.x-0.5, point.y-0.5, point.radius*0.25, 0, 2 * Math.PI, false);
                         ctx.fillStyle = '#222';
                         ctx.fill();
                     }
@@ -337,8 +337,8 @@ var XGoban = function(sel, opts) {
                         if(!lines[key]) {
                             lines[key] = true
                             ctx.beginPath();
-                            ctx.moveTo(point.x+0.5, point.y+0.5);
-                            ctx.lineTo(neighbour.x+0.5, neighbour.y+0.5);
+                            ctx.moveTo(point.x-0.5, point.y-0.5);
+                            ctx.lineTo(neighbour.x-0.5, neighbour.y-0.5);
                             ctx.closePath();
                             ctx.stroke();
                         }
@@ -674,7 +674,7 @@ XGoban.geometry = {
         };
         for(var y=0, i=0; y<size; y++) {
             for(var x=0; x<size; x++, i++) {
-                points.push([((x+1.5*0.95)*2), ((y+1.5)*2), neighbours(x, y, i)]);
+                points.push([3 + x*2, 3 + y*2, neighbours(x, y, i)]);
             }
         }
         var stars = [];

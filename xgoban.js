@@ -654,8 +654,8 @@ var XGoban = function(sel, opts) {
 XGoban.geometry = {
     square: function(size) {
         var points = [];
-        var height = (size*2) + 4;
-        var width = (size*2) + 4;
+        var height = (size*2) + 2;
+        var width = (size*2) + 2;
         var neighbours = function(x, y, i) {
             var points = [];
             if(y != 0) {
@@ -672,9 +672,10 @@ XGoban.geometry = {
             }
             return points;
         };
+        //.. ... ..
         for(var y=0, i=0; y<size; y++) {
             for(var x=0; x<size; x++, i++) {
-                points.push([3 + x*2, 3 + y*2, neighbours(x, y, i)]);
+                points.push([2+x*2, 2+y*2, neighbours(x, y, i)]);
             }
         }
         var stars = [];

@@ -521,7 +521,7 @@ var XGoban = function(sel, opts) {
                 return false;
             }
         });
-        container.append(element);
+        container.prepend(element);
 
         setupPoints();
         fit();

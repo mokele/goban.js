@@ -58,6 +58,7 @@ var XGoban = function(sel, opts) {
     $.extend(defaultOpts, opts);
     opts = defaultOpts;
 
+    var drawStars = true;
     var self = {};
     var container = $(sel);
     var element;
@@ -102,19 +103,20 @@ var XGoban = function(sel, opts) {
     var lastFocusedPoint = null;
 
     var repositionElement = function(el, point) {
-        var diameter = point.radius * 2;
+        var diameter = point.sizeRatio * (point.radius * 2) + 1;
         el.remove(); // weird resize fix - only likes to be resized while not on the page
         el.width(diameter);
         el.height(diameter);
         el.css({
-            left: point.x - point.radius,
-            top: point.y - point.radius
+            left: point.x - (point.sizeRatio * point.radius) - 1,
+            top: point.y - (point.sizeRatio * point.radius) - 1
         });
         element.append(el); // weird resize fix
     };
     // todo: refactor out into a Point object
-    var repositionPoint = function(pointIndex) {
+    var repositionPoint = function(pointIndex, sizeRatio) {
         var point = points[pointIndex];
+        point.sizeRatio = sizeRatio;
         if(point.element) {
             repositionElement(point.element, point);
         }
@@ -123,7 +125,7 @@ var XGoban = function(sel, opts) {
         }
         if(point.numberElement) {
             repositionElement(point.numberElement, point);
-            var width = height = point.radius * 2;
+            var width = height = point.radius * 2 - 1;
             var fontSize = point.radius;
             point.numberElement.css({
                 fontSize: fontSize+'px',
@@ -132,43 +134,48 @@ var XGoban = function(sel, opts) {
         }
     };
     var number = 1;
-    var place = function(pointIndex, stone, focus, check) {
+    var place = function(pointIndex, stone, focus, check, placedElement, andNumber, sizeRatio) {
         var point = points[pointIndex];
+        sizeRatio = sizeRatio ? sizeRatio : 1;
         if(point.stone) {
             return false;
         }
-        var placedElement = ghostElements[stone].clone(true);
+        placedElement = placedElement ? placedElement : ghostElements[stone].clone(true);
+        hideGhostElements();
         placedElement.removeClass('ghost');
         point.stone = stone;
         point.element = placedElement;
-        repositionPoint(pointIndex);
+        repositionPoint(pointIndex, sizeRatio);
 
         element.append(point.element);
 
-        var height;
-        var width = height = point.radius * 2;
-        var numberElement = $('<div class="number"></div>');
-        var numberText = ''+(number++);
-        numberElement.text(numberText);
-        var fontSize = point.radius;
-        var oppositeColor = stone == 'BLACK' ? 'WHITE' : 'BLACK';
-        numberElement.css({
-            lineHeight: height+'px',
-            zIndex: 100,
-            color: oppositeColor.toLowerCase(),
-            fontSize: fontSize+'px',
-            textAlign: 'center',
-            position: 'absolute',
-            left: point.x - point.radius,
-            top: point.y - point.radius,
-            width: width,
-            height: height
-        });
-        if($('.number', element).is(':visible')) {
-            numberElement.show();
+        if(andNumber) {
+            var height;
+            var width = height = point.radius * 2;
+            var numberElement = $('<div class="number"></div>');
+            var numberText = ''+(number++);
+            numberElement.text(numberText);
+            var fontSizeRatio = Math.abs(0-numberText.length+1)/10;
+            var fontSize = point.radius - (point.radius*fontSizeRatio);
+            var oppositeColor = stone == 'BLACK' ? 'WHITE' : 'BLACK';
+            numberElement.css({
+                lineHeight: height+'px',
+                zIndex: 100,
+                color: oppositeColor.toLowerCase(),
+                fontSize: fontSize+'px',
+                textAlign: 'center',
+                position: 'absolute',
+                left: point.x - point.radius,
+                top: point.y - point.radius,
+                width: width,
+                height: height
+            });
+            if($('.number', element).is(':visible')) {
+                numberElement.show();
+            }
+            element.append(numberElement);
+            point.numberElement = numberElement;
         }
-        element.append(numberElement);
-        point.numberElement = numberElement;
 
         if(focus === true) {
             if(lastFocusedPoint) {
@@ -181,8 +188,8 @@ var XGoban = function(sel, opts) {
             focusElement.width(diameter);
             focusElement.height(diameter);
             focusElement.css({
-                left: point.x - point.radius,
-                top: point.y - point.radius
+                left: point.x - point.radius - 1,
+                top: point.y - point.radius - 1
             });
             element.append(focusElement);
             lastFocusedElement = focusElement;
@@ -196,6 +203,7 @@ var XGoban = function(sel, opts) {
     };
     var clearPoint = function(index) {
         var point = points[index];
+        point.sizeRatio = 1;
         if(point.element) {
             point.element.remove();
             point.element = null;
@@ -222,6 +230,7 @@ var XGoban = function(sel, opts) {
     };
     
     var valueFun = function(point) {
+        // todo: redo
         return function() {
             if(point.stone) {
                 if(!point.overlay) {
@@ -277,7 +286,13 @@ var XGoban = function(sel, opts) {
             var nStone = points[neighbour].stone;
             if(!nStone) {
                 liberties++; // empty point
-            } else if(pStone && nStone== pStone) {
+                if(!pStone) {
+                    connectedPoints.push(neighbour);
+                    for(var m=0; m<points[neighbour].neighbours.length; m++) {
+                        neighbours.push(points[neighbour].neighbours[m]);
+                    }
+                }
+            } else if(nStone == pStone) {
                 connectedPoints.push(neighbour);
                 for(var m=0; m<points[neighbour].neighbours.length; m++) {
                     neighbours.push(points[neighbour].neighbours[m]);
@@ -323,7 +338,7 @@ var XGoban = function(sel, opts) {
                 var lines = {};
                 for(var i=0; i<points.length; i++) {
                     var point = points[i];
-                    if(point.hasStar) {
+                    if(point.hasStar && drawStars) {
                         ctx.beginPath();
                         ctx.arc(point.x-0.5, point.y-0.5, point.radius*0.25, 0, 2 * Math.PI, false);
                         ctx.fillStyle = '#222';
@@ -459,8 +474,8 @@ var XGoban = function(sel, opts) {
                 ghostElement().width(diameter);
                 ghostElement().height(diameter);
                 ghostElement().css({
-                    left: point.x - point.radius,
-                    top: point.y - point.radius
+                    left: point.x - point.radius - 1,
+                    top: point.y - point.radius - 1
                 });
                 var el = ghostElement();
                 element.append(el);
@@ -598,6 +613,9 @@ var XGoban = function(sel, opts) {
         connectedPoints: connectedPoints,
         removeCallback: callbacks.removeCallback,
         clear: clear,
+        setValue: function(point, value) {
+            points[point].value = value;
+        },
         focus: function(point) {
             console.log("todo: implement focus");
         },
@@ -647,7 +665,20 @@ var XGoban = function(sel, opts) {
             element.remove();
             element = null;
         },
-
+        drawStars: function(v) {
+            var redraw = false;
+            if(v === false) {
+                drawStars = v;
+                redraw = true;
+            } else if(v === true) {
+                drawStars = v;
+                redraw = true;
+            }
+            if(redraw) {
+                draw();
+            }
+            return drawStars;
+        },
         pointToCoord: pointToCoord
     });
 };

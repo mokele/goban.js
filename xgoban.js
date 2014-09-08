@@ -133,6 +133,19 @@ var XGoban = function(sel, opts) {
             });
         }
     };
+    var defocusAllPoints = function() {
+        if(lastFocusedPoint) {
+            lastFocusedElement.remove();
+            lastFocusedElement = null;
+            lastFocusedPoint = null;
+        }
+        for(var k=0; k<points.length; k++) {
+            if(points[k].overlay) {
+                points[k].overlay.element.remove();
+                delete points[k].overlay;
+            }
+        }
+    };
     var number = 1;
     var place = function(pointIndex, stone, focus, check, placedElement, andNumber, sizeRatio) {
         var point = points[pointIndex];
@@ -146,7 +159,6 @@ var XGoban = function(sel, opts) {
         point.stone = stone;
         point.element = placedElement;
         repositionPoint(pointIndex, sizeRatio);
-
         element.append(point.element);
 
         if(andNumber) {
@@ -177,12 +189,8 @@ var XGoban = function(sel, opts) {
             point.numberElement = numberElement;
         }
 
+        defocusAllPoints();
         if(focus === true) {
-            if(lastFocusedPoint) {
-                lastFocusedElement.remove();
-                lastFocusedElement = null;
-                lastFocusedPoint = null;
-            }
             var focusElement = opts.focusElement(stone);
             var diameter = point.radius * 2;
             focusElement.width(diameter);
@@ -194,6 +202,7 @@ var XGoban = function(sel, opts) {
             element.append(focusElement);
             lastFocusedElement = focusElement;
             lastFocusedPoint = point;
+            point.overlay = {element: focusElement};
         }
         if(opts.rules && check !== false) {
             return opts.rules.check(self, point.point);
@@ -622,19 +631,7 @@ var XGoban = function(sel, opts) {
         defocus: function(point) {
             console.log("todo: implement defocus");
         },
-        defocusAllPoints: function() {
-            if(lastFocusedPoint) {
-                lastFocusedElement.remove();
-                lastFocusedElement = null;
-                lastFocusedPoint = null;
-            }
-            for(var k=0; k<points.length; k++) {
-                if(points[k].overlay) {
-                    points[k].overlay.element.remove();
-                    delete points[k].overlay;
-                }
-            }
-        },
+        defocusAllPoints: defocusAllPoints,
         defocusPoint: function(pointIndex) {
             if(lastFocusedPoint) {
                 lastFocusedElement.remove();

@@ -571,8 +571,8 @@ var XGoban = function(sel, opts) {
         overlay.element.width(diameter);
         overlay.element.height(diameter);
         overlay.element.css({
-            left: point.x - point.radius,
-            top: point.y - point.radius
+            left: point.x - point.radius - 1,
+            top: point.y - point.radius - 1
         });
         element.append(overlay.element);
         point.overlay = overlay;
@@ -596,6 +596,7 @@ var XGoban = function(sel, opts) {
     };
 
     return $.extend(self, {
+        opts: opts,
         svg: opts.svg,
         geometry: opts.geometry,
         points: points,
@@ -618,6 +619,12 @@ var XGoban = function(sel, opts) {
         enable: function() {
             enabled = true;
         },
+        enabled: function(v) {
+            if(v===true || v===false) {
+                enabled = v;
+            }
+            return enabled;
+        },
         placed: callbacks.callback('placed'),
         connectedPoints: connectedPoints,
         removeCallback: callbacks.removeCallback,
@@ -627,9 +634,6 @@ var XGoban = function(sel, opts) {
         },
         focus: function(point) {
             console.log("todo: implement focus");
-        },
-        defocus: function(point) {
-            console.log("todo: implement defocus");
         },
         defocusAllPoints: defocusAllPoints,
         defocusPoint: function(pointIndex) {

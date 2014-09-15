@@ -1,56 +1,53 @@
-if(!window.Callbacks) {
-    // todo: jquery this up and remove Callbacks
-    var Callbacks = function() {
-        var callbacks = {};
-        var callback = function(name) {
-            if(!callbacks[name]) {
-                callbacks[name] = [];
-            }
-            return function(f) {
-                callbacks[name].push(f);
-            };
+var Callbacks = function() {
+    var callbacks = {};
+    var callback = function(name) {
+        if(!callbacks[name]) {
+            callbacks[name] = [];
+        }
+        return function(f) {
+            callbacks[name].push(f);
         };
-        var fire = function(name) {
-            if(!callbacks[name]) {
-                return;
-            }
-            var applyArguments = [];
-            for(var i=1; i<arguments.length; i++) {
-                applyArguments.push(arguments[i]);
-            }
-            for(var i=0; i<callbacks[name].length; i++) {
-                var f = callbacks[name][i];
-                if(!f) {
-                    continue;
-                }
-                f.apply(f, applyArguments);
-            }
-        };
-        var fireOne = function(f) {
-            var applyArguments = [];
-            for(var i=2; i<arguments.length; i++) {
-                applyArguments.push(arguments[i]);
+    };
+    var fire = function(name) {
+        if(!callbacks[name]) {
+            return;
+        }
+        var applyArguments = [];
+        for(var i=1; i<arguments.length; i++) {
+            applyArguments.push(arguments[i]);
+        }
+        for(var i=0; i<callbacks[name].length; i++) {
+            var f = callbacks[name][i];
+            if(!f) {
+                continue;
             }
             f.apply(f, applyArguments);
-        };
-        var removeCallback = function(name, f) {
-            if(!callbacks[name]) {
-                return;
-            }
-            for(var i=0; i<callbacks[name].length; i++) {
-                var c = callbacks[name][i];
-                if(c == f) {
-                    delete callbacks[name][i];
-                }
-            }
-        };
-        return {
-            fire: fire,
-            fireOne: fireOne,
-            callback: callback,
-            removeCallback: removeCallback
         }
     };
+    var fireOne = function(f) {
+        var applyArguments = [];
+        for(var i=2; i<arguments.length; i++) {
+            applyArguments.push(arguments[i]);
+        }
+        f.apply(f, applyArguments);
+    };
+    var removeCallback = function(name, f) {
+        if(!callbacks[name]) {
+            return;
+        }
+        for(var i=0; i<callbacks[name].length; i++) {
+            var c = callbacks[name][i];
+            if(c == f) {
+                delete callbacks[name][i];
+            }
+        }
+    };
+    return {
+        fire: fire,
+        fireOne: fireOne,
+        callback: callback,
+        removeCallback: removeCallback
+    }
 };
 var XGoban = function(sel, opts) {
     var defaultOpts = {
@@ -338,7 +335,7 @@ var XGoban = function(sel, opts) {
             }
         }
         if(!opts.svg) {
-            var ctx = canvas[0].getContext("2d");
+            var ctx = canvas.get(0).getContext("2d");
             //ctx.translate(0.5, 0.5);
             draw = function() {
                 ctx.strokeStyle = '#222';
@@ -600,6 +597,16 @@ var XGoban = function(sel, opts) {
         svg: opts.svg,
         geometry: opts.geometry,
         points: points,
+        nonEmptyPoints: function() {
+            var nonEmptyPoints = [];
+            for(var i=0; i<points.length; i++) {
+                var point = points[i];
+                if(point.stone) {
+                    nonEmptyPoints.push(point);
+                }
+            }
+            return nonEmptyPoints;
+        },
         repr: repr,
         type: 'x',
         size: function() {
@@ -726,6 +733,20 @@ XGoban.geometry = {
     }
 };
 XGoban.rules = {
+    norules: function() {
+        return {
+            check: function(goban, point) {
+                var stone = goban.points[point].stone;
+                var ownLiberties = goban.connectedPoints(point).liberties;
+                return {
+                    point: point,
+                    stone: stone,
+                    liberties: ownLiberties,
+                    takenPoints: []
+                };
+            }
+        };
+    },
     japanese: function() {
         var reprs = []; // board state per move for ko check
 

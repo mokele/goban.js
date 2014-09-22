@@ -528,17 +528,21 @@ var XGoban = function(sel, opts) {
             }
         });
         $(document.body).click(function(e) {
-            if(!stateEditable) {
-                return;
-            }
             var containerOffset = container.offset();
             var x = e.pageX - containerOffset.left;
             var y = e.pageY - containerOffset.top;
             var point = getPoint(x, y);
             if(point) {
-                e.stopPropagation();
-                e.preventDefault();
-                callbacks.fire('stateEdit', e, point);
+                var value = point.value();
+                if(stateEditable) {
+                    e.stopPropagation();
+                    e.preventDefault();
+                    callbacks.fire('stateEdit', e, point);
+                } else if(value != 'EMPTY') {
+                    e.stopPropagation();
+                    e.preventDefault();
+                    callbacks.fire('stoneClick', e, point);
+                }
                 return false;
             }
         });
@@ -616,6 +620,7 @@ var XGoban = function(sel, opts) {
             stateEditable = true;
         },
         stateEdit: callbacks.callback('stateEdit'),
+        stoneClick: callbacks.callback('stoneClick'),
         setTurn: function(nextTurn) {
             turn = nextTurn;
         },

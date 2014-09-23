@@ -488,9 +488,6 @@ var XGoban = function(sel, opts) {
             }
             point.x += showCoords ? padding : 0;
             point.y += showCoords ? padding : 0;
-            if(i==0) {
-                console.log("point", point.x, point.y);
-            }
             /*point.radius = point.originalRadius * ratio;
             point.hitArea.x = point.originalHitArea.x * ratio;
             point.hitArea.y = point.originalHitArea.y * ratio;

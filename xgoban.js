@@ -55,6 +55,7 @@ var XGoban = function(sel, opts) {
     $.extend(defaultOpts, opts);
     opts = defaultOpts;
 
+    var showCoords = opts.showCoords ? true : false;
     var drawStars = true;
     var self = {};
     var container = $(sel);
@@ -119,20 +120,21 @@ var XGoban = function(sel, opts) {
     var lastFocusedPoint = null;
 
     var repositionElement = function(el, point) {
-        var diameter = point.sizeRatio * (point.radius * 2) + 1;
+        var diameter = (point.radius * 2) + 1;
         el.remove(); // weird resize fix - only likes to be resized while not on the page
         el.width(diameter);
         el.height(diameter);
+        var left = (point.x - point.radius - 1);
+        var top = (point.y - point.radius - 1);
         el.css({
-            left: point.x - (point.sizeRatio * point.radius) - 1,
-            top: point.y - (point.sizeRatio * point.radius) - 1
+            left: left,
+            top: top
         });
         element.append(el); // weird resize fix
     };
     // todo: refactor out into a Point object
-    var repositionPoint = function(pointIndex, sizeRatio) {
+    var repositionPoint = function(pointIndex) {
         var point = points[pointIndex];
-        point.sizeRatio = sizeRatio;
         if(point.element) {
             repositionElement(point.element, point);
         }
@@ -162,9 +164,8 @@ var XGoban = function(sel, opts) {
             }
         }
     };
-    var place = function(pointIndex, stone, focus, check, placedElement, number, sizeRatio) {
+    var place = function(pointIndex, stone, focus, check, placedElement, number) {
         var point = points[pointIndex];
-        sizeRatio = sizeRatio ? sizeRatio : 1;
         if(point.stone) {
             return false;
         }
@@ -173,7 +174,7 @@ var XGoban = function(sel, opts) {
         placedElement.removeClass('ghost');
         point.stone = stone;
         point.element = placedElement;
-        repositionPoint(pointIndex, sizeRatio);
+        repositionPoint(pointIndex);
         element.append(point.element);
 
         if(number !== undefined) {
@@ -227,7 +228,6 @@ var XGoban = function(sel, opts) {
     };
     var clearPoint = function(index) {
         var point = points[index];
-        point.sizeRatio = 1;
         if(point.element) {
             point.element.remove();
             point.element = null;
@@ -363,18 +363,28 @@ var XGoban = function(sel, opts) {
                 var lines = {};
                 for(var i=0; i<points.length; i++) {
                     var point = points[i];
-
-                    var xy = pointToXY(point.point);
-                    if(xy.y+1 == size || xy.y == 0) {
-                        var offset = xy.y == 0 ? 23 : -14;
-                        var coordLetter = xToCoordLetter(xy.x);
-                        ctx.font = "12px Arial";
-                        ctx.fillText(coordLetter,point.x-5, point.y+offset);
-                    }
-                    if(xy.x+1 == size || xy.x == 0) {
-                        ctx.font = "12px Arial";
-                        var offset = xy.x == 0 ? -23 : 9;
-                        ctx.fillText(xy.y+1, point.x+offset, point.y+4);
+                    if(showCoords) {
+                        var fontSize = point.radius;
+                        ctx.font = fontSize+"px Arial";
+                        var xy = pointToXY(point.point);
+                        if(xy.y+1 == size || xy.y == 0) {
+                            var coordLetter = xToCoordLetter(xy.x);
+                            var metrics = ctx.measureText(coordLetter);
+                            var x = point.x - (metrics.width/2);
+                            var offset = xy.y == 0 ? point.radius+fontSize : 0-point.radius-2;
+                            var y = point.y + offset;
+                            ctx.fillText(coordLetter, x, y);
+                        }
+                        if(xy.x+1 == size || xy.x == 0) {
+                            var number = xy.y+1+''
+                            var metrics = ctx.measureText(number);
+                            var halfWidth = metrics.width/2;
+                            var halfRadius = point.radius/2;
+                            var offset = xy.x == 0 ? -point.radius-halfRadius-2 : point.radius+halfRadius;
+                            var x = point.x + offset - halfWidth;
+                            var y = point.y+(fontSize/3);
+                            ctx.fillText(xy.y+1, x, y);
+                        }
                     }
 
                     if(point.hasStar && drawStars) {
@@ -445,6 +455,7 @@ var XGoban = function(sel, opts) {
 
     var draw = function() {};
 
+    var padding = 15;
     var recalculateSize = function() {
         width = container.width();
         height = container.height();
@@ -459,8 +470,10 @@ var XGoban = function(sel, opts) {
             width: width,
             height: height
         });
-        var ratioX = width / opts.geometry.width;
-        var ratioY = height / opts.geometry.height;
+        padding = width*0.03;
+        var doublePadding = (showCoords ? padding : 0)*2;
+        var ratioX = (width-doublePadding) / opts.geometry.width;
+        var ratioY = (height-doublePadding) / opts.geometry.height;
         for(var i=0; i<points.length; i++) {
             var point = points[i];
             point.x = point.originalX * ratioX;
@@ -473,13 +486,17 @@ var XGoban = function(sel, opts) {
             if((point.y/0.5) % 2 == 1) {
                 point.y += 0.5;
             }
+            point.x += showCoords ? padding : 0;
+            point.y += showCoords ? padding : 0;
+            if(i==0) {
+                console.log("point", point.x, point.y);
+            }
             /*point.radius = point.originalRadius * ratio;
             point.hitArea.x = point.originalHitArea.x * ratio;
             point.hitArea.y = point.originalHitArea.y * ratio;
             point.hitArea.x2 = point.originalHitArea.x2 * ratio;
             point.hitArea.y2 = point.originalHitArea.y2 * ratio;
             */
-            //repositionPoint(i);
         }
         recalculatePointRadius();
         if(lastFocusedPoint) {
@@ -625,6 +642,20 @@ var XGoban = function(sel, opts) {
         svg: opts.svg,
         geometry: opts.geometry,
         points: points,
+        toggleCoords: function() {
+            showCoords = !showCoords;
+            fit();
+        },
+        showCoords: function() {
+            if(showCoords) return;
+            showCoords = true;
+            fit();
+        },
+        hideCoords: function() {
+            if(!showCoords) return;
+            showCoords = false;
+            fit();
+        },
         nonEmptyPoints: function() {
             var nonEmptyPoints = [];
             for(var i=0; i<points.length; i++) {

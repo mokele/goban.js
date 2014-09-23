@@ -72,6 +72,25 @@ var XGoban = function(sel, opts) {
     var enabled = true;
     var stateEditable = false;
 
+    var pointToXY = function(point) {
+        var numPoints = points.length;
+        var root = Math.sqrt(numPoints);
+        var x = point % root;
+        var number = root - ((point - (point % root)) / root);
+        return {x:x, y:number-1};
+    };
+    var letters = ["A","B","C","D","E","F","G","H","J","K","L","M","N","O","P","Q","R","S","T"];
+    var xToCoordLetter = function(x) {
+        return letters[x];
+    };
+    var xyToCoord = function(xy) {
+        var number = xy.y + 1;
+        return xToCoordLetter(xy.x) + number;
+    };
+    var pointToCoord = function(point) {
+        return xyToCoord(pointToXY(point));
+    };
+
     var getPoint = function(x, y) {
         // todo: sort points by x and y coord
         // so we when to stop searching
@@ -143,8 +162,7 @@ var XGoban = function(sel, opts) {
             }
         }
     };
-    var number = 1;
-    var place = function(pointIndex, stone, focus, check, placedElement, andNumber, sizeRatio) {
+    var place = function(pointIndex, stone, focus, check, placedElement, number, sizeRatio) {
         var point = points[pointIndex];
         sizeRatio = sizeRatio ? sizeRatio : 1;
         if(point.stone) {
@@ -158,11 +176,11 @@ var XGoban = function(sel, opts) {
         repositionPoint(pointIndex, sizeRatio);
         element.append(point.element);
 
-        if(andNumber) {
+        if(number !== undefined) {
             var height;
             var width = height = point.radius * 2;
             var numberElement = $('<div class="number"></div>');
-            var numberText = ''+(number++);
+            var numberText = ''+number;
             numberElement.text(numberText);
             var fontSizeRatio = Math.abs(0-numberText.length+1)/10;
             var fontSize = point.radius - (point.radius*fontSizeRatio);
@@ -311,6 +329,7 @@ var XGoban = function(sel, opts) {
         };
     };
     var setupPoints = function() {
+        var size = Math.sqrt(opts.geometry.points.length);
         for(var i=0; i<opts.geometry.points.length; i++) {
             var optPoint = opts.geometry.points[i];
             var x = optPoint[0];
@@ -344,6 +363,20 @@ var XGoban = function(sel, opts) {
                 var lines = {};
                 for(var i=0; i<points.length; i++) {
                     var point = points[i];
+
+                    var xy = pointToXY(point.point);
+                    if(xy.y+1 == size || xy.y == 0) {
+                        var offset = xy.y == 0 ? 23 : -14;
+                        var coordLetter = xToCoordLetter(xy.x);
+                        ctx.font = "12px Arial";
+                        ctx.fillText(coordLetter,point.x-5, point.y+offset);
+                    }
+                    if(xy.x+1 == size || xy.x == 0) {
+                        ctx.font = "12px Arial";
+                        var offset = xy.x == 0 ? -23 : 9;
+                        ctx.fillText(xy.y+1, point.x+offset, point.y+4);
+                    }
+
                     if(point.hasStar && drawStars) {
                         ctx.beginPath();
                         ctx.arc(point.x-0.5, point.y-0.5, point.radius*0.25, 0, 2 * Math.PI, false);
@@ -551,15 +584,6 @@ var XGoban = function(sel, opts) {
         setupPoints();
         fit();
     })();
-
-    var pointToCoord = function(point) {
-        var numPoints = points.length;
-        var root = Math.sqrt(numPoints);
-        var letters = ["A","B","C","D","E","F","G","H","J","K","L","M","N","O","P","Q","R","S","T"];
-        var x = point % root;
-        var number = root - ((point - (point % root)) / root);
-        return letters[x] + number;
-    };
 
     var setPointOverlay = function(pointIndex, overlayFun) {
         var point = points[pointIndex];

@@ -16,5 +16,8 @@
     z-index: 100;
 }
 .xgoban .number {
-    -display: none;
+    display: none !important;
+}
+.xgoban.numbers .number {
+    display: block !important;
 }

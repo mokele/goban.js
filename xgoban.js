@@ -580,7 +580,7 @@ var XGoban = function(sel, opts) {
             var y = e.pageY - containerOffset.top;
             var point = getPoint(x, y);
             if(point) {
-                var value = point.value();
+                var value = point.value;
                 if(stateEditable) {
                     e.stopPropagation();
                     e.preventDefault();
@@ -668,8 +668,12 @@ var XGoban = function(sel, opts) {
         size: function() {
             return 19; // todo: not all gobans have size
         },
-        stateEditable: function() {
-            stateEditable = true;
+        stateEditable: function(v) {
+            if(v === false) {
+                stateEditable = false;
+            } else {
+                stateEditable = true;
+            }
         },
         stateEdit: callbacks.callback('stateEdit'),
         stoneClick: callbacks.callback('stoneClick'),
@@ -678,7 +682,6 @@ var XGoban = function(sel, opts) {
         },
         disable: function() {
             enabled = false;
-            stateEditable = false;
         },
         enable: function() {
             enabled = true;

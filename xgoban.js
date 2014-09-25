@@ -371,7 +371,7 @@ var XGoban = function(sel, opts) {
                             var coordLetter = xToCoordLetter(xy.x);
                             var metrics = ctx.measureText(coordLetter);
                             var x = point.x - (metrics.width/2);
-                            var offset = xy.y == 0 ? point.radius+fontSize : 0-point.radius-2;
+                            var offset = xy.y == 0 ? point.radius+(fontSize*1.05) : 0-point.radius-(fontSize*0.2)-2;
                             var y = point.y + offset;
                             ctx.fillText(coordLetter, x, y);
                         }
@@ -380,7 +380,7 @@ var XGoban = function(sel, opts) {
                             var metrics = ctx.measureText(number);
                             var halfWidth = metrics.width/2;
                             var halfRadius = point.radius/2;
-                            var offset = xy.x == 0 ? -point.radius-halfRadius-2 : point.radius+halfRadius;
+                            var offset = xy.x == 0 ? -(point.radius*1.2)-halfRadius-2 : (point.radius*1.2)+halfRadius;
                             var x = point.x + offset - halfWidth;
                             var y = point.y+(fontSize/3);
                             ctx.fillText(xy.y+1, x, y);

@@ -124,8 +124,8 @@ var XGoban = function(sel, opts) {
         el.remove(); // weird resize fix - only likes to be resized while not on the page
         el.width(diameter);
         el.height(diameter);
-        var left = (point.x - point.radius - 1);
-        var top = (point.y - point.radius - 1);
+        var left = (point.x - point.radius);
+        var top = (point.y - point.radius);
         el.css({
             left: left,
             top: top
@@ -143,7 +143,7 @@ var XGoban = function(sel, opts) {
         }
         if(point.numberElement) {
             repositionElement(point.numberElement, point);
-            var width = height = point.radius * 2 - 1;
+            var width = height = point.radius * 2;
             var fontSize = point.radius;
             point.numberElement.css({
                 fontSize: fontSize+'px',
@@ -158,7 +158,7 @@ var XGoban = function(sel, opts) {
             lastFocusedPoint = null;
         }
         for(var k=0; k<points.length; k++) {
-            if(points[k].overlay) {
+            if(points[k].overlay && points[k].overlay.type == 'focus') {
                 points[k].overlay.element.remove();
                 delete points[k].overlay;
             }
@@ -205,20 +205,19 @@ var XGoban = function(sel, opts) {
             point.numberElement = numberElement;
         }
 
-        defocusAllPoints();
-        if(focus === true) {
+        if(focus === true && !point.overlay) {
             var focusElement = opts.focusElement(stone);
             var diameter = point.radius * 2;
             focusElement.width(diameter);
             focusElement.height(diameter);
             focusElement.css({
-                left: point.x - point.radius - 1,
-                top: point.y - point.radius - 1
+                left: point.x - point.radius,
+                top: point.y - point.radius
             });
             element.append(focusElement);
             lastFocusedElement = focusElement;
             lastFocusedPoint = point;
-            point.overlay = {element: focusElement};
+            point.overlay = {element: focusElement, type: 'focus'};
         }
         if(opts.rules && check !== false) {
             return opts.rules.check(self, point.point);
@@ -527,8 +526,8 @@ var XGoban = function(sel, opts) {
                 ghostElement().width(diameter);
                 ghostElement().height(diameter);
                 ghostElement().css({
-                    left: point.x - point.radius - 1,
-                    top: point.y - point.radius - 1
+                    left: point.x - point.radius,
+                    top: point.y - point.radius
                 });
                 var el = ghostElement();
                 element.append(el);
@@ -603,18 +602,21 @@ var XGoban = function(sel, opts) {
         var point = points[pointIndex];
         if(point.overlay) {
             point.overlay.element.remove();
-            point.overlay = null;
+            delete point.overlay;
         }
-        var overlay = overlayFun(point.stone);
-        var diameter = point.radius * 2;
-        overlay.element.width(diameter);
-        overlay.element.height(diameter);
-        overlay.element.css({
-            left: point.x - point.radius - 1,
-            top: point.y - point.radius - 1
-        });
-        element.append(overlay.element);
-        point.overlay = overlay;
+        if(overlayFun) {
+            var overlay = overlayFun(point.stone);
+            var diameter = point.radius * 2;
+            overlay.element.width(diameter);
+            overlay.element.height(diameter);
+            overlay.element.css({
+                left: point.x - point.radius,
+                top: point.y - point.radius
+            });
+            element.append(overlay.element);
+            point.overlay = overlay;
+            repositionElement(overlay.element, point);
+        }
     };
 
     var pointRepr = function(stone) {
@@ -637,8 +639,10 @@ var XGoban = function(sel, opts) {
     return $.extend(self, {
         opts: opts,
         svg: opts.svg,
+        container: container,
         geometry: opts.geometry,
         points: points,
+        getPoint: getPoint,
         toggleCoords: function() {
             showCoords = !showCoords;
             fit();
@@ -710,9 +714,18 @@ var XGoban = function(sel, opts) {
                 lastFocusedPoint = null;
             }
             var point = points[pointIndex];
-            if(point.overlay) {
+            if(point.overlay && point.overlay.type == 'focus') {
                 point.overlay.element.remove();
                 delete point.overlay;
+            }
+        },
+        clearAllPointOverlays: function() {
+            for(var i=0; i<points.length; i++) {
+                var point = points[i];
+                if(point.overlay) {
+                    point.overlay.element.remove();
+                    delete point.overlay;
+                }
             }
         },
         setPointOverlay: setPointOverlay,

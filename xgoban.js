@@ -356,9 +356,10 @@ var XGoban = function(sel, opts) {
             var ctx = canvas.get(0).getContext("2d");
             //ctx.translate(0.5, 0.5);
             draw = function() {
-                ctx.strokeStyle = '#222';
+                ctx.strokeStyle = '#333';
+                ctx.fillStyle = '#333';
                 ctx.lineWidth = 1;
-                ctx.clearRect(0, 0, width, height);
+                ctx.clearRect(0, 0, container.width(), container.height());
                 var lines = {};
                 for(var i=0; i<points.length; i++) {
                     var point = points[i];

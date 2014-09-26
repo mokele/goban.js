@@ -738,6 +738,7 @@ var XGoban = function(sel, opts) {
             element.hide();
             hideGhostElements();
         },
+        hideGhostElements: hideGhostElements,
         fit: fit,
         show: function() {
             element.show();

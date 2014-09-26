@@ -170,7 +170,7 @@ var XGoban = function(sel, opts) {
             return false;
         }
         placedElement = placedElement ? placedElement : ghostElements[stone].clone(true);
-        hideGhostElements();
+        hideGhostElements(); // todo: hide specific element
         placedElement.removeClass('ghost');
         point.stone = stone;
         point.element = placedElement;
@@ -449,7 +449,8 @@ var XGoban = function(sel, opts) {
 
     var hideGhostElements = function() {
         for(var k in ghostElements) {
-            ghostElements[k].remove();
+            var el = ghostElements[k];
+            el.remove();
         }
     };
 
@@ -501,7 +502,7 @@ var XGoban = function(sel, opts) {
         }
         draw();
     };
-
+    var mousemove;
     (function() {
         element = $('<div class="xgoban"></div>');
         if(opts.svg) {
@@ -513,8 +514,7 @@ var XGoban = function(sel, opts) {
             drawingElement = canvas;
         }
         element.append(drawingElement);
-
-        drawingElement.mousemove(function(e) {
+        mousemove = function(e) {
             if(!enabled) {
                 return;
             }
@@ -532,36 +532,12 @@ var XGoban = function(sel, opts) {
                 });
                 var el = ghostElement();
                 element.append(el);
-
-                if(!el.data('stoneHandler')) {
-                    el.data('stoneHandler', true);
-                    el.click(function(e) {
-                        if(!enabled) {
-                            return;
-                        }
-                        var x = e.pageX - containerOffset.left;
-                        var y = e.pageY - containerOffset.top;
-                        var point = getPoint(x, y);
-                        if(!point) {
-                            return;
-                        }
-                        e.stopPropagation();
-                        e.preventDefault();
-                        var moveOutcome = place(point.point, turn, true);
-                        if(moveOutcome) {
-                            callbacks.fire('placed', {
-                                point: point.point,
-                                stone: turn
-                            });
-                        }
-                        // todo: publish error event
-                        return false;
-                    });
-                }
             } else {
-                ghostElement().remove();
+                var el = ghostElement();
+                el.remove();
             }
-        });
+        };
+
         $(document.body).mousemove(function(e) {
             var containerOffset = container.offset();
             var pageX = e.pageX;
@@ -572,6 +548,8 @@ var XGoban = function(sel, opts) {
                || pageY > containerOffset.top + container.outerHeight())
             {
                 hideGhostElements();
+            } else {
+                mousemove(e);
             }
         });
         $(document.body).click(function(e) {
@@ -580,15 +558,25 @@ var XGoban = function(sel, opts) {
             var y = e.pageY - containerOffset.top;
             var point = getPoint(x, y);
             if(point) {
-                var value = point.value;
+                var value = point.value();
                 if(stateEditable) {
                     e.stopPropagation();
                     e.preventDefault();
                     callbacks.fire('stateEdit', e, point);
-                } else if(value != 'EMPTY') {
+                } else if(point.stone) {//value && value != 'EMPTY') {
                     e.stopPropagation();
                     e.preventDefault();
                     callbacks.fire('stoneClick', e, point);
+                } else if(enabled) {
+                    e.stopPropagation();
+                    e.preventDefault();
+                    var moveOutcome = place(point.point, turn, true);
+                    if(moveOutcome) {
+                        callbacks.fire('placed', {
+                            point: point.point,
+                            stone: turn
+                        });
+                    }
                 }
                 return false;
             }
@@ -608,6 +596,7 @@ var XGoban = function(sel, opts) {
         if(overlayFun) {
             var overlay = overlayFun(point.stone);
             var diameter = point.radius * 2;
+            overlay.element.mousemove(mousemove);
             overlay.element.width(diameter);
             overlay.element.height(diameter);
             overlay.element.css({
@@ -701,8 +690,16 @@ var XGoban = function(sel, opts) {
         connectedPoints: connectedPoints,
         removeCallback: callbacks.removeCallback,
         clear: clear,
+        resetValues: function() {
+            for(var i=0; i<points.length; i++) {
+                var point = points[i];
+                point.value = valueFun(point);
+            }
+        },
         setValue: function(point, value) {
-            points[point].value = value;
+            points[point].value = function() {
+                return value;
+            }
         },
         focus: function(point) {
             console.log("todo: implement focus");

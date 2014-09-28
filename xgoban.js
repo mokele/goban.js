@@ -190,7 +190,7 @@ var XGoban = function(sel, opts) {
             var oppositeColor = stone == 'BLACK' ? 'WHITE' : 'BLACK';
             numberElement.css({
                 lineHeight: height+'px',
-                zIndex: 100,
+                zIndex: 150,
                 color: oppositeColor.toLowerCase(),
                 fontSize: fontSize+'px',
                 textAlign: 'center',
@@ -629,9 +629,13 @@ var XGoban = function(sel, opts) {
         opts: opts,
         svg: opts.svg,
         container: container,
+        element: element,
         geometry: opts.geometry,
         points: points,
         getPoint: getPoint,
+        toggleNumbers: function() {
+            element.toggleClass('numbers');
+        },
         toggleCoords: function() {
             showCoords = !showCoords;
             fit();
@@ -659,7 +663,8 @@ var XGoban = function(sel, opts) {
         repr: repr,
         type: 'x',
         size: function() {
-            return 19; // todo: not all gobans have size
+            var numPoints = points.length;
+            return Math.sqrt(numPoints);
         },
         stateEditable: function(v) {
             if(v === false) {

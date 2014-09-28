@@ -21,4 +21,8 @@
 }
 .xgoban.numbers .number {
     display: block !important;
+    z-index: 150;
+}
+.xgoban.numbers .overlay {
+    display: none !important;
 }

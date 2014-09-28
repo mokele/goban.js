@@ -91,6 +91,16 @@ var XGoban = function(sel, opts) {
     var pointToCoord = function(point) {
         return xyToCoord(pointToXY(point));
     };
+    var coordToPoint = function(coord) {
+        var numPoints = points.length;
+        var root = Math.sqrt(numPoints);
+        var letter = coord.substr(0, 1);
+        var number = parseInt(coord.substr(1));
+        var x = letters.indexOf(letter);
+        var y = root - number;
+        var point = (y)*root + x;
+        return point;
+    }
 
     var getPoint = function(x, y) {
         // todo: sort points by x and y coord
@@ -743,6 +753,7 @@ var XGoban = function(sel, opts) {
             }
             return drawStars;
         },
+        coordToPoint: coordToPoint,
         pointToCoord: pointToCoord
     });
 };

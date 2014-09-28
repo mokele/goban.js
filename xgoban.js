@@ -116,9 +116,6 @@ var XGoban = function(sel, opts) {
         return ghostElements[turn];
     };
 
-    var lastFocusedElement = null;
-    var lastFocusedPoint = null;
-
     var repositionElement = function(el, point) {
         var diameter = (point.radius * 2) + 1;
         el.remove(); // weird resize fix - only likes to be resized while not on the page
@@ -152,15 +149,10 @@ var XGoban = function(sel, opts) {
         }
     };
     var defocusAllPoints = function() {
-        if(lastFocusedPoint) {
-            lastFocusedElement.remove();
-            lastFocusedElement = null;
-            lastFocusedPoint = null;
-        }
         for(var k=0; k<points.length; k++) {
             if(points[k].overlay && points[k].overlay.type == 'focus') {
                 points[k].overlay.element.remove();
-                delete points[k].overlay;
+                points[k].overlay = null;
             }
         }
     };
@@ -205,7 +197,11 @@ var XGoban = function(sel, opts) {
             point.numberElement = numberElement;
         }
 
-        if(focus === true && !point.overlay) {
+        if(focus === true) {
+            if(point.overlay && point.overlay.type != 'focus') {
+                point.overlay.element.remove();
+                point.overlay = null;
+            }
             var focusElement = opts.focusElement(stone);
             var diameter = point.radius * 2;
             focusElement.width(diameter);
@@ -215,8 +211,6 @@ var XGoban = function(sel, opts) {
                 top: point.y - point.radius
             });
             element.append(focusElement);
-            lastFocusedElement = focusElement;
-            lastFocusedPoint = point;
             point.overlay = {element: focusElement, type: 'focus'};
         }
         if(opts.rules && check !== false) {
@@ -231,11 +225,6 @@ var XGoban = function(sel, opts) {
             point.element.remove();
             point.element = null;
             point.stone = null;
-        }
-        if(lastFocusedPoint && index == lastFocusedPoint.point) {
-            lastFocusedElement.remove();
-            lastFocusedElement = null;
-            lastFocusedPoint = null;
         }
         if(point.numberElement) {
             point.numberElement.remove();
@@ -497,9 +486,6 @@ var XGoban = function(sel, opts) {
             */
         }
         recalculatePointRadius();
-        if(lastFocusedPoint) {
-            repositionElement(lastFocusedElement, lastFocusedPoint);
-        }
         draw();
     };
     var mousemove;
@@ -553,6 +539,9 @@ var XGoban = function(sel, opts) {
             }
         });
         $(document.body).click(function(e) {
+            if(!element.is(':visible')) {
+                return;
+            }
             var containerOffset = container.offset();
             var x = e.pageX - containerOffset.left;
             var y = e.pageY - containerOffset.top;
@@ -591,7 +580,7 @@ var XGoban = function(sel, opts) {
         var point = points[pointIndex];
         if(point.overlay) {
             point.overlay.element.remove();
-            delete point.overlay;
+            point.overlay = null;
         }
         if(overlayFun) {
             var overlay = overlayFun(point.stone);
@@ -706,15 +695,10 @@ var XGoban = function(sel, opts) {
         },
         defocusAllPoints: defocusAllPoints,
         defocusPoint: function(pointIndex) {
-            if(lastFocusedPoint) {
-                lastFocusedElement.remove();
-                lastFocusedElement = null;
-                lastFocusedPoint = null;
-            }
             var point = points[pointIndex];
             if(point.overlay && point.overlay.type == 'focus') {
                 point.overlay.element.remove();
-                delete point.overlay;
+                point.overlay = null;
             }
         },
         clearAllPointOverlays: function() {
@@ -722,7 +706,7 @@ var XGoban = function(sel, opts) {
                 var point = points[i];
                 if(point.overlay) {
                     point.overlay.element.remove();
-                    delete point.overlay;
+                    point.overlay = null;
                 }
             }
         },

@@ -133,7 +133,10 @@ var XGoban = function(sel, opts) {
         el.height(diameter);
         var left = (point.x - point.radius);
         var top = (point.y - point.radius);
+        var fontSize = point.radius;
         el.css({
+            fontSize: fontSize+'px',
+            lineHeight: diameter+'px',
             left: left,
             top: top
         });
@@ -150,12 +153,6 @@ var XGoban = function(sel, opts) {
         }
         if(point.numberElement) {
             repositionElement(point.numberElement, point);
-            var width = height = point.radius * 2;
-            var fontSize = point.radius;
-            point.numberElement.css({
-                fontSize: fontSize+'px',
-                lineHeight: height+'px'
-            });
         }
     };
     var defocusAllPoints = function() {

@@ -131,8 +131,8 @@ var XGoban = function(sel, opts) {
         el.remove(); // weird resize fix - only likes to be resized while not on the page
         el.width(diameter);
         el.height(diameter);
-        var left = (point.x - point.radius);
-        var top = (point.y - point.radius);
+        var left = (point.x - point.radius) - 0.5;
+        var top = (point.y - point.radius) - 0.5;
         var fontSize = point.radius;
         el.css({
             fontSize: fontSize+'px',

@@ -192,8 +192,8 @@ var XGoban = function(sel, opts) {
                 fontSize: fontSize+'px',
                 textAlign: 'center',
                 position: 'absolute',
-                left: point.x - point.radius,
-                top: point.y - point.radius,
+                left: point.x - point.radius - 0.5,
+                top: point.y - point.radius - 0.5,
                 width: width,
                 height: height
             });
@@ -214,8 +214,8 @@ var XGoban = function(sel, opts) {
             focusElement.width(diameter);
             focusElement.height(diameter);
             focusElement.css({
-                left: point.x - point.radius,
-                top: point.y - point.radius
+                left: point.x - point.radius - 0.5,
+                top: point.y - point.radius - 0.5
             });
             element.append(focusElement);
             point.overlay = {element: focusElement, type: 'focus'};
@@ -520,8 +520,8 @@ var XGoban = function(sel, opts) {
                 ghostElement().width(diameter);
                 ghostElement().height(diameter);
                 ghostElement().css({
-                    left: point.x - point.radius,
-                    top: point.y - point.radius
+                    left: point.x - point.radius - 0.5,
+                    top: point.y - point.radius - 0.5
                 });
                 var el = ghostElement();
                 element.append(el);
@@ -596,8 +596,8 @@ var XGoban = function(sel, opts) {
             overlay.element.width(diameter);
             overlay.element.height(diameter);
             overlay.element.css({
-                left: point.x - point.radius,
-                top: point.y - point.radius
+                left: point.x - point.radius - 0.5,
+                top: point.y - point.radius - 0.5
             });
             element.append(overlay.element);
             point.overlay = overlay;

@@ -10,34 +10,74 @@ var Goban = function(opts) {
         pointOut: $.Callbacks()
     };
 
-    var points = this.points;
-    var size = this.size();
-    (function() {
-        for(var i=0; i<opts.geometry.points.length; i++) {
-            var optPoint = opts.geometry.points[i];
-            var x = optPoint[0];
-            var y = optPoint[1];
-            var neighbours = optPoint[2];
-            point = {
-                id: i,
-                neighbours: neighbours,
-                elements: {}
-            };
-            //point.value = valueFun(point);
-            //point.connected = connectedFun(point);
-            point.originalX = x;
-            point.originalY = y;
-            point.x = x;
-            point.y = y;
-            points[i] = point;
-        }
-        if(opts.geometry.stars) {
-            for(var i=0; i<opts.geometry.stars.length; i++) {
-                var star = opts.geometry.stars[i];
-                points[star].hasStar = true;
+    if(opts.geometry) {
+        var points = this.points;
+        var size = this.size();
+        (function() {
+            for(var i=0; i<opts.geometry.points.length; i++) {
+                var optPoint = opts.geometry.points[i];
+                var neighbours;
+                var hasXY = optPoint.length == 3 && typeof(optPoint[2]) == 'object';
+                if(hasXY) {
+                    var x = optPoint[0];
+                    var y = optPoint[1];
+                    neighbours = optPoint[2];
+                } else {
+                    neighbours = optPoint;
+                }
+                point = {
+                    id: i,
+                    neighbours: neighbours,
+                    elements: {}
+                };
+                if(hasXY) {
+                    //point.value = valueFun(point);
+                    //point.connected = connectedFun(point);
+                    point.originalX = x;
+                    point.originalY = y;
+                    point.x = x;
+                    point.y = y;
+                }
+                points[i] = point;
             }
+            if(opts.geometry.stars) {
+                for(var i=0; i<opts.geometry.stars.length; i++) {
+                    var star = opts.geometry.stars[i];
+                    points[star].hasStar = true;
+                }
+            }
+        })();
+    }
+    var mousemove = $.proxy(function(e) {
+        var container = this.element.parent();
+        var containerOffset = container.offset();
+        var x = e.pageX - containerOffset.left;
+        var y = e.pageY - containerOffset.top;
+        var point = this.getPoint(x, y);
+        if(point && !point.stone) {
+            var diameter = point.radius * 2;
+            this.callbacks.pointOver.fire(point.id);
+        } else {
+            this.callbacks.pointOut.fire(point.id);
         }
-    })();
+    }, this);
+    $(document.body).mousemove($.proxy(function(e) {
+        var container = this.element.parent();
+        if(!container[0]) return;
+
+        var containerOffset = container.offset();
+        var pageX = e.pageX;
+        var pageY = e.pageY;
+        if(pageX < containerOffset.left
+           || pageX > containerOffset.left + container.outerWidth()
+       || pageY < containerOffset.top
+       || pageY > containerOffset.top + container.outerHeight())
+       {
+           this.callbacks.pointOut.fire();
+       } else {
+           mousemove(e);
+       }
+    }, this));
 };
 
 Goban.defaultOpts = {
@@ -87,14 +127,23 @@ Goban.prototype.hoverPlaceAndFocus = function(
         if(point.elements[placeName]) {
             return;
         }
-        console.log(point.id);
         var tile = 'b';
         var hover = hoverElement();
         hover.click(function() {
-            goban.removeFromAllPoints(focusName);
+            var removedFocusPoints = goban.removeFromAllPoints(focusName);
+            // read the place element fixes bug where removed focus element is
+            // not redrawn by chrome
+            for(var i=0; i<removedFocusPoints.length; i++) {
+                var point = goban.points[removedFocusPoints[i]];
+                if(point.elements[placeName]) {
+                    var el = point.elements[placeName];
+                    goban.addToPoint(point.id, placeName, el);
+                }
+            }
 
             goban.removeFromPoint(pointId, hoverName);
             goban.addToPoint(pointId, placeName, placeElement());
+
             goban.addToPoint(pointId, focusName, focusElement());
             placeFun.call(this, pointId);
         });
@@ -135,14 +184,17 @@ Goban.prototype.removeFromPoint = function(id, name) {
     delete point.elements[name];
 };
 Goban.prototype.removeFromAllPoints = function(name) {
+    var removed = [];
     for(var i=0; i<this.points.length; i++) {
         var point = this.points[i];
         for(var k in point.elements) {
             if(k == name) {
                 this.removeFromPoint(point.id, name);
+                removed.push(point.id);
             }
         }
     }
+    return removed;
 };
 
 Goban.prototype.coordToPoint = function(coord) {
@@ -164,6 +216,11 @@ Goban.prototype.pointToXY = function(point) {
 };
 
 Goban.prototype.recalculatePointPositions = function() {
+    if(this.opts.drawer) {
+        this.opts.drawer.recalculatePointPositions(this);
+        return;
+    }
+
     var padding = this.width*0.05;
     var doublePadding = (this.opts.showCoords ? padding : 0)*2;
     var ratioX = (this.width-doublePadding) / this.opts.geometry.width;
@@ -194,6 +251,9 @@ Goban.prototype.recalculatePointPositions = function() {
 
 
 Goban.prototype.recalculatePointRadius = function() {
+    if(this.opts.drawer) {
+        return;
+    }
     var minDistance = false;
     for(var i=0; i<this.points.length; i++) {
         var point = this.points[i];
@@ -227,36 +287,6 @@ Goban.prototype.recalculatePointRadius = function() {
         point.radius = pointRadius;
         this.repositionPoint(point);
     }
-    var mousemove = $.proxy(function(e) {
-        var container = this.element.parent();
-        var containerOffset = container.offset();
-        var x = e.pageX - containerOffset.left;
-        var y = e.pageY - containerOffset.top;
-        var point = this.getPoint(x, y);
-        if(point && !point.stone) {
-            var diameter = point.radius * 2;
-            this.callbacks.pointOver.fire(point.id);
-        } else {
-            this.callbacks.pointOut.fire(point.id);
-        }
-    }, this);
-    $(document.body).mousemove($.proxy(function(e) {
-        var container = this.element.parent();
-        if(!container[0]) return;
-
-        var containerOffset = container.offset();
-        var pageX = e.pageX;
-        var pageY = e.pageY;
-        if(pageX < containerOffset.left
-           || pageX > containerOffset.left + container.outerWidth()
-       || pageY < containerOffset.top
-       || pageY > containerOffset.top + container.outerHeight())
-       {
-           this.callbacks.pointOut.fire();
-       } else {
-           mousemove(e);
-       }
-    }, this));
 };
 
 
@@ -290,8 +320,13 @@ Goban.prototype.recalculateSize = function() {
     });
     this.canvas.attr('width', this.width);
     this.canvas.attr('height', this.height);
-    this.recalculatePointPositions();
-    this.recalculatePointRadius();
+
+    if(this.opts.drawer) {
+        this.opts.drawer.recalculateSize(this);
+    } else {
+        this.recalculatePointPositions();
+        this.recalculatePointRadius();
+    }
 };
 
 Goban.prototype.fit = function() {
@@ -315,12 +350,16 @@ Goban.prototype.getPoint = function(x, y) {
 };
 
 Goban.prototype.redraw = function() {
+    if(this.opts.drawer) {
+        this.opts.drawer.redraw(this);
+        return;
+    }
     var ctx = this.ctx;
     //ctx.translate(0.5, 0.5);
     ctx.strokeStyle = this.opts.strokeStyle;
     ctx.fillStyle = this.opts.strokeStyle;
     ctx.lineWidth = 1;
-    ctx.clearRect(0, 0, this.element.width(), this.element.height());
+    ctx.clearRect(0, 0, this.width, this.height);
     var lines = {};
     for(var i=0; i<this.points.length; i++) {
         var point = this.points[i];

@@ -1,0 +1,29 @@
+.goban {
+    position: relative;
+    background: #DCB35C;
+}
+.goban .stone,
+.goban .focused,
+.goban .ghost{
+    position: absolute;
+}
+.goban .ghost {
+    opacity:0.5;
+    z-index: 50;
+}
+.goban .stone {
+    z-index: 50;
+}
+.goban .focused {
+    z-index: 100;
+}
+.goban .number {
+    display: none !important;
+}
+.goban.numbers .number {
+    display: block !important;
+    z-index: 150;
+}
+.goban.numbers .overlay {
+    display: none !important;
+}

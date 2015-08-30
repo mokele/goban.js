@@ -82,6 +82,49 @@ var Goban = function(opts) {
        }
     }, this));
 };
+Goban.prototype.getNeighbours = function(id) {
+    return this.points[id].neighbours.slice();
+};
+Goban.prototype.getStone = function(id) {
+    return this.points[id].stoneValue;
+};
+Goban.prototype.isSameStone = function(a, b) {
+    return Goban.utils.deepEquals(this.getStone(a), this.getStone(b));
+};
+
+Goban.prototype.getConnectedPoints = function(point, withStoneValue) {
+    var seen = [point];
+    var connectedPoints = [point];
+    var neighbours = this.points[point].neighbours.slice(0);
+    var liberties = 0;
+    var pStone = withStoneValue !== undefined ? withStoneValue : this.points[point].stoneValue;
+    for(var i=0; i<neighbours.length; i++) {
+        var neighbour = neighbours[i];
+        if(seen.indexOf(neighbour) > -1) {
+            continue;
+        }
+        seen.push(neighbour);// definitely a better way to do this due to prior path
+        var nStone = this.points[neighbour].stoneValue;
+        if(nStone === undefined) {
+            liberties++; // empty point
+            if(pStone === undefined) {
+                connectedPoints.push(neighbour);
+                for(var m=0; m<this.points[neighbour].neighbours.length; m++) {
+                    neighbours.push(this.points[neighbour].neighbours[m]);
+                }
+            }
+        } else if(Goban.utils.deepEquals(nStone, pStone)) {
+            connectedPoints.push(neighbour);
+            for(var m=0; m<this.points[neighbour].neighbours.length; m++) {
+                neighbours.push(this.points[neighbour].neighbours[m]);
+            }
+        }
+    }
+    return {
+        liberties: liberties,
+        points: connectedPoints
+    };
+};
 Goban.prototype.redraw = function() {
     this.opts.drawer.redraw(this);
 }
@@ -107,15 +150,14 @@ Goban.prototype.pointOut = function(f) {
     return this;
 };
 
-Goban.prototype.showCoords = function(show) {
-    this.opts.showCoords = show;
+Goban.prototype.drawCoords = function(show) {
+    this.opts.coords = show;
     this.redraw();
 };
 
-Goban.prototype.hoverPlaceAndFocus = function(
+Goban.prototype.hoverAndPlace = function(
     hoverName, hoverElement,
-    placeName, placeElement,
-    focusName, focusElement, placeFun
+    placeName, place, placeFun
 ) {
     var goban = this;
     goban.pointOver(function(pointId) {
@@ -130,22 +172,15 @@ Goban.prototype.hoverPlaceAndFocus = function(
         var tile = 'b';
         var hover = hoverElement();
         hover.click(function() {
-            var removedFocusPoints = goban.removeFromAllPoints(focusName);
-            // read the place element fixes bug where removed focus element is
-            // not redrawn by chrome
-            for(var i=0; i<removedFocusPoints.length; i++) {
-                var point = goban.points[removedFocusPoints[i]];
-                if(point.elements[placeName]) {
-                    var el = point.elements[placeName];
-                    goban.addToPoint(point.id, placeName, el);
-                }
-            }
-
             goban.removeFromPoint(pointId, hoverName);
-            goban.addToPoint(pointId, placeName, placeElement());
+            var placed = place();
+            goban.addToPoint(pointId, placeName, placed.element, placed.stone);
 
-            goban.addToPoint(pointId, focusName, focusElement());
-            placeFun.call(this, pointId);
+            var ret = placeFun.call(this, pointId, placed.stone);
+            if(ret === false) {
+                goban.addToPoint(pointId, hoverName, hoverElement());
+                goban.removeFromPoint(pointId, placeName, true);
+            }
         });
         goban.addToPoint(pointId, hoverName, hover);
     });
@@ -162,7 +197,7 @@ Goban.prototype.size = function() {
     return Math.sqrt(this.opts.geometry.points.length);
 };
 
-Goban.prototype.addToPoint = function(id, name, element) {
+Goban.prototype.addToPoint = function(id, name, element, stoneValue) {
     var point = this.points[id];
     if(point.elements[name]) {
         this.removeFromPoint(id, name);
@@ -175,12 +210,18 @@ Goban.prototype.addToPoint = function(id, name, element) {
         top: point.y - point.radius - 0.5
     });
     point.elements[name] = element;
+    if(stoneValue !== undefined) {
+        point.stoneValue = stoneValue;
+    }
     this.element.append(element);
 };
-Goban.prototype.removeFromPoint = function(id, name) {
+Goban.prototype.removeFromPoint = function(id, name, andStoneValue) {
     var point = this.points[id];
     if(!point.elements[name]) return;
     point.elements[name].remove();
+    if(andStoneValue) {
+        delete point.stoneValue;
+    }
     delete point.elements[name];
 };
 Goban.prototype.removeFromAllPoints = function(name) {
@@ -275,9 +316,10 @@ Goban.drawer = function(opts) {
     this.opts = $.extend(Goban.drawer.defaultOpts, opts ? opts : {});
 }
 Goban.drawer.defaultOpts = {
+    coords: true,
     strokeStyle: '#333',
     starStyle: '#333',
-    drawStars: true
+    stars: true
 };
 Goban.drawer.prototype.recalculateSize = function(goban) {
     this.recalculatePointPositions(goban);
@@ -321,7 +363,7 @@ Goban.drawer.prototype.recalculatePointRadius = function(goban) {
 
 Goban.drawer.prototype.recalculatePointPositions = function(goban) {
     var padding = goban.width*0.05;
-    var doublePadding = (this.opts.showCoords ? padding : 0)*2;
+    var doublePadding = (this.opts.coords ? padding : 0)*2;
     var ratioX = (goban.width-doublePadding) / goban.opts.geometry.width;
     var ratioY = (goban.height-doublePadding) / goban.opts.geometry.height;
     for(var i=0; i<goban.points.length; i++) {
@@ -336,8 +378,8 @@ Goban.drawer.prototype.recalculatePointPositions = function(goban) {
         if((point.y/0.5) % 2 == 1) {
             point.y += 0.5;
         }
-        point.x += this.opts.showCoords ? padding : 0;
-        point.y += this.opts.showCoords ? padding : 0;
+        point.x += this.opts.coords ? padding : 0;
+        point.y += this.opts.coords ? padding : 0;
         /*point.radius = point.originalRadius * ratio;
           point.hitArea.x = point.originalHitArea.x * ratio;
           point.hitArea.y = point.originalHitArea.y * ratio;
@@ -357,7 +399,7 @@ Goban.drawer.prototype.redraw = function(goban) {
     var lines = {};
     for(var i=0; i<goban.points.length; i++) {
         var point = goban.points[i];
-        if(this.opts.showCoords) {
+        if(this.opts.coords) {
             var fontSize = point.radius;
             ctx.font = fontSize+"px Arial";
             var xy = goban.pointToXY(point.id);
@@ -381,7 +423,7 @@ Goban.drawer.prototype.redraw = function(goban) {
             }
         }
 
-        if(point.hasStar && this.opts.drawStars) {
+        if(point.hasStar && this.opts.stars) {
             ctx.beginPath();
             ctx.arc(point.x-0.5, point.y-0.5, point.radius*0.25, 0, 2 * Math.PI, false);
             ctx.fillStyle = this.opts.starStyle;
@@ -447,4 +489,39 @@ Goban.geometry = {
             stars: stars
         };
     }
+};
+
+Goban.utils = {};
+Goban.utils.deepEquals = function(a, b) {
+    var type = typeof(a);
+    if(type != typeof(b)) {
+        return false;
+    }
+    if(type == 'object') {
+        if(a.length !== b.length) {
+            return false
+        }
+        if(a.length === undefined) {
+            var aKeys = Object.keys(a);
+            var bKeys = Object.keys(b);
+            if(Object.keys(a).length != Object.keys(b).length) {
+                return false;
+            }
+            for(var k in a) {
+                if(!Goban.utils.deepEquals(a[k], b[k])) {
+                    return false;
+                }
+            }
+            return true;
+        } else {
+            for(var i=0; i<a.length; i++) {
+                if(!Goban.utils.deepEquals(a[i], b[i])) {
+                    return false;
+                }
+            }
+            return true;
+        }
+
+    }
+    return a == b;
 };

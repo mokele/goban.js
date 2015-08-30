@@ -1,5 +1,8 @@
 var Goban = function(opts) {
     this.opts = $.extend(Goban.defaultOpts, opts ? opts : {});
+    if(!this.opts.drawer) {
+        this.opts.drawer = new Goban.drawer();
+    }
     this.element = $('<div class="goban"></div>');
     this.canvas = $('<canvas width="'+opts.width+'" height="'+opts.height+'"></canvas>');
     this.element.append(this.canvas);
@@ -79,12 +82,9 @@ var Goban = function(opts) {
        }
     }, this));
 };
-
-Goban.defaultOpts = {
-    strokeStyle: '#333',
-    starStyle: '#333',
-    drawStars: true
-};
+Goban.prototype.redraw = function() {
+    this.opts.drawer.redraw(this);
+}
 
 Goban.letters = ["A","B","C","D","E","F","G","H","J","K","L","M","N","O","P","Q","R","S","T"];
 Goban.xToCoordLetter = function(x) {
@@ -215,80 +215,6 @@ Goban.prototype.pointToXY = function(point) {
     return {x:x, y:number-1};
 };
 
-Goban.prototype.recalculatePointPositions = function() {
-    if(this.opts.drawer) {
-        this.opts.drawer.recalculatePointPositions(this);
-        return;
-    }
-
-    var padding = this.width*0.05;
-    var doublePadding = (this.opts.showCoords ? padding : 0)*2;
-    var ratioX = (this.width-doublePadding) / this.opts.geometry.width;
-    var ratioY = (this.height-doublePadding) / this.opts.geometry.height;
-    for(var i=0; i<this.points.length; i++) {
-        var point = this.points[i];
-        point.x = point.originalX * ratioX;
-        point.x = Math.round(point.x*2)/2;
-        if((point.x/0.5) % 2 == 1) {
-            point.x += 0.5;
-        }
-        point.y = point.originalY * ratioY;
-        point.y = Math.round(point.y*2)/2;
-        if((point.y/0.5) % 2 == 1) {
-            point.y += 0.5;
-        }
-        point.x += this.opts.showCoords ? padding : 0;
-        point.y += this.opts.showCoords ? padding : 0;
-        /*point.radius = point.originalRadius * ratio;
-          point.hitArea.x = point.originalHitArea.x * ratio;
-          point.hitArea.y = point.originalHitArea.y * ratio;
-          point.hitArea.x2 = point.originalHitArea.x2 * ratio;
-          point.hitArea.y2 = point.originalHitArea.y2 * ratio;
-          */
-        this.repositionPoint(point);
-    }
-}
-
-
-Goban.prototype.recalculatePointRadius = function() {
-    if(this.opts.drawer) {
-        return;
-    }
-    var minDistance = false;
-    for(var i=0; i<this.points.length; i++) {
-        var point = this.points[i];
-        for(var j=0; j<point.neighbours.length; j++) {
-            var neighbour = this.points[point.neighbours[j]];
-            var diffx = Math.abs(point.x - neighbour.x);
-            var diffy = Math.abs(point.y - neighbour.y);
-            var distance = Math.sqrt(diffx*diffx + diffy*diffy);
-            minDistance = minDistance===false ? distance : Math.min(minDistance, distance);
-        }
-    }
-    var pointRadius = minDistance / 2;
-    for(var i=0; i<this.points.length; i++) {
-        var point = this.points[i];
-        var x = point.x;
-        var y = point.y;
-        var hitArea = {
-            x: x - pointRadius,
-            y: y - pointRadius,
-            x2: x + pointRadius,
-            y2: y + pointRadius
-        };
-        point.originalHitArea = {
-            x: hitArea.x,
-            y: hitArea.y,
-            x2: hitArea.x2,
-            y2: hitArea.y2
-        };
-        point.hitArea = hitArea;
-        point.originalRadius = pointRadius;
-        point.radius = pointRadius;
-        this.repositionPoint(point);
-    }
-};
-
 
 Goban.prototype.repositionPoint = function(point) {
     for(var k in point.elements) {
@@ -321,12 +247,7 @@ Goban.prototype.recalculateSize = function() {
     this.canvas.attr('width', this.width);
     this.canvas.attr('height', this.height);
 
-    if(this.opts.drawer) {
-        this.opts.drawer.recalculateSize(this);
-    } else {
-        this.recalculatePointPositions();
-        this.recalculatePointRadius();
-    }
+    this.opts.drawer.recalculateSize(this);
 };
 
 Goban.prototype.fit = function() {
@@ -349,25 +270,98 @@ Goban.prototype.getPoint = function(x, y) {
     return false;
 };
 
-Goban.prototype.redraw = function() {
-    if(this.opts.drawer) {
-        this.opts.drawer.redraw(this);
-        return;
+
+Goban.drawer = function(opts) {
+    this.opts = $.extend(Goban.drawer.defaultOpts, opts ? opts : {});
+}
+Goban.drawer.defaultOpts = {
+    strokeStyle: '#333',
+    starStyle: '#333',
+    drawStars: true
+};
+Goban.drawer.prototype.recalculateSize = function(goban) {
+    this.recalculatePointPositions(goban);
+    this.recalculatePointRadius(goban);
+};
+Goban.drawer.prototype.recalculatePointRadius = function(goban) {
+    var minDistance = false;
+    for(var i=0; i<goban.points.length; i++) {
+        var point = goban.points[i];
+        for(var j=0; j<point.neighbours.length; j++) {
+            var neighbour = goban.points[point.neighbours[j]];
+            var diffx = Math.abs(point.x - neighbour.x);
+            var diffy = Math.abs(point.y - neighbour.y);
+            var distance = Math.sqrt(diffx*diffx + diffy*diffy);
+            minDistance = minDistance===false ? distance : Math.min(minDistance, distance);
+        }
     }
-    var ctx = this.ctx;
+    var pointRadius = minDistance / 2;
+    for(var i=0; i<goban.points.length; i++) {
+        var point = goban.points[i];
+        var x = point.x;
+        var y = point.y;
+        var hitArea = {
+            x: x - pointRadius,
+            y: y - pointRadius,
+            x2: x + pointRadius,
+            y2: y + pointRadius
+        };
+        point.originalHitArea = {
+            x: hitArea.x,
+            y: hitArea.y,
+            x2: hitArea.x2,
+            y2: hitArea.y2
+        };
+        point.hitArea = hitArea;
+        point.originalRadius = pointRadius;
+        point.radius = pointRadius;
+        goban.repositionPoint(point);
+    }
+};
+
+Goban.drawer.prototype.recalculatePointPositions = function(goban) {
+    var padding = goban.width*0.05;
+    var doublePadding = (this.opts.showCoords ? padding : 0)*2;
+    var ratioX = (goban.width-doublePadding) / goban.opts.geometry.width;
+    var ratioY = (goban.height-doublePadding) / goban.opts.geometry.height;
+    for(var i=0; i<goban.points.length; i++) {
+        var point = goban.points[i];
+        point.x = point.originalX * ratioX;
+        point.x = Math.round(point.x*2)/2;
+        if((point.x/0.5) % 2 == 1) {
+            point.x += 0.5;
+        }
+        point.y = point.originalY * ratioY;
+        point.y = Math.round(point.y*2)/2;
+        if((point.y/0.5) % 2 == 1) {
+            point.y += 0.5;
+        }
+        point.x += this.opts.showCoords ? padding : 0;
+        point.y += this.opts.showCoords ? padding : 0;
+        /*point.radius = point.originalRadius * ratio;
+          point.hitArea.x = point.originalHitArea.x * ratio;
+          point.hitArea.y = point.originalHitArea.y * ratio;
+          point.hitArea.x2 = point.originalHitArea.x2 * ratio;
+          point.hitArea.y2 = point.originalHitArea.y2 * ratio;
+          */
+        goban.repositionPoint(point);
+    }
+}
+Goban.drawer.prototype.redraw = function(goban) {
+    var ctx = goban.ctx;
     //ctx.translate(0.5, 0.5);
     ctx.strokeStyle = this.opts.strokeStyle;
     ctx.fillStyle = this.opts.strokeStyle;
     ctx.lineWidth = 1;
-    ctx.clearRect(0, 0, this.width, this.height);
+    ctx.clearRect(0, 0, goban.width, goban.height);
     var lines = {};
-    for(var i=0; i<this.points.length; i++) {
-        var point = this.points[i];
+    for(var i=0; i<goban.points.length; i++) {
+        var point = goban.points[i];
         if(this.opts.showCoords) {
             var fontSize = point.radius;
             ctx.font = fontSize+"px Arial";
-            var xy = this.pointToXY(point.id);
-            if(xy.y+1 == this.size() || xy.y == 0) {
+            var xy = goban.pointToXY(point.id);
+            if(xy.y+1 == goban.size() || xy.y == 0) {
                 var coordLetter = Goban.xToCoordLetter(xy.x);
                 var metrics = ctx.measureText(coordLetter);
                 var x = point.x - (metrics.width/2);
@@ -375,7 +369,7 @@ Goban.prototype.redraw = function() {
                 var y = point.y + offset;
                 ctx.fillText(coordLetter, x, y);
             }
-            if(xy.x+1 == this.size() || xy.x == 0) {
+            if(xy.x+1 == goban.size() || xy.x == 0) {
                 var number = xy.y+1+''
                 var metrics = ctx.measureText(number);
                 var halfWidth = metrics.width/2;
@@ -396,7 +390,7 @@ Goban.prototype.redraw = function() {
         }
 
         for(var j=0; j<point.neighbours.length; j++) {
-            var neighbour = this.points[point.neighbours[j]];
+            var neighbour = goban.points[point.neighbours[j]];
             var key = Math.min(point.id, neighbour.id)
             + 'x' + Math.max(point.id, neighbour.id);
             if(!lines[key]) {
@@ -410,6 +404,8 @@ Goban.prototype.redraw = function() {
         }
     }
 }
+
+
 
 Goban.geometry = {
     square: function(size) {

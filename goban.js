@@ -89,7 +89,9 @@ Goban.prototype.getStone = function(id) {
     return this.points[id].stoneValue;
 };
 Goban.prototype.isSameStone = function(a, b) {
-    return Goban.utils.deepEquals(this.getStone(a), this.getStone(b));
+    var aStone = this.getStone(a);
+    var bStone = this.getStone(b);
+    return Goban.utils.deepEquals(aStone, bStone);
 };
 
 Goban.prototype.getConnectedPoints = function(point, withStoneValue) {
@@ -194,9 +196,17 @@ Goban.prototype.hoverAndPlace = function(
 
 
 Goban.prototype.size = function() {
-    return Math.sqrt(this.opts.geometry.points.length);
+    if(this.opts.drawer.size) {
+        return this.opts.drawer.size;
+    } else {
+        return Math.sqrt(this.opts.geometry.points.length);
+    }
 };
 
+Goban.prototype.getElementFromPoint = function(id, name) {
+    var point = this.points[id];
+    return point.elements[name];
+};
 Goban.prototype.addToPoint = function(id, name, element, stoneValue) {
     var point = this.points[id];
     if(point.elements[name]) {
@@ -316,6 +326,9 @@ Goban.drawer = function(opts) {
     this.opts = $.extend(Goban.drawer.defaultOpts, opts ? opts : {});
 }
 Goban.drawer.defaultOpts = {
+    coordFontFamily: 'Arial',
+    lineWidth: 0.5,
+    //coordStyle: defaults to same as lines (strokeStyle)
     coords: true,
     strokeStyle: '#333',
     starStyle: '#333',
@@ -394,14 +407,17 @@ Goban.drawer.prototype.redraw = function(goban) {
     //ctx.translate(0.5, 0.5);
     ctx.strokeStyle = this.opts.strokeStyle;
     ctx.fillStyle = this.opts.strokeStyle;
-    ctx.lineWidth = 1;
+    ctx.lineWidth = this.opts.lineWidth;
     ctx.clearRect(0, 0, goban.width, goban.height);
     var lines = {};
     for(var i=0; i<goban.points.length; i++) {
         var point = goban.points[i];
         if(this.opts.coords) {
+            if(this.opts.coordStyle) {
+                ctx.fillStyle = this.opts.coordStyle;
+            }
             var fontSize = point.radius;
-            ctx.font = fontSize+"px Arial";
+            ctx.font = fontSize+'px '+this.opts.coordFontFamily;
             var xy = goban.pointToXY(point.id);
             if(xy.y+1 == goban.size() || xy.y == 0) {
                 var coordLetter = Goban.xToCoordLetter(xy.x);
@@ -420,6 +436,9 @@ Goban.drawer.prototype.redraw = function(goban) {
                 var x = point.x + offset - halfWidth;
                 var y = point.y+(fontSize/3);
                 ctx.fillText(xy.y+1, x, y);
+            }
+            if(this.opts.coordStyle) {
+                ctx.fillStyle = this.opts.strokeStyle;
             }
         }
 
@@ -494,6 +513,11 @@ Goban.geometry = {
 Goban.utils = {};
 Goban.utils.deepEquals = function(a, b) {
     var type = typeof(a);
+    if(a === null && b === null) {
+        return true;
+    } else if(a === null || b === null) {
+        return false;
+    }
     if(type != typeof(b)) {
         return false;
     }

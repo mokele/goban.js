@@ -8,7 +8,7 @@
     position: absolute;
 }
 .goban .ghost {
-    opacity:0.5;
+    opacity:0.65;
     z-index: 50;
 }
 .goban .stone {

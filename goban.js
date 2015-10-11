@@ -332,7 +332,9 @@ Goban.drawer.defaultOpts = {
     coords: true,
     strokeStyle: '#333',
     starStyle: '#333',
-    stars: true
+    stars: true,
+    exteriorLines: true,
+    padding: 1
 };
 Goban.drawer.prototype.recalculateSize = function(goban) {
     this.recalculatePointPositions(goban);
@@ -375,24 +377,58 @@ Goban.drawer.prototype.recalculatePointRadius = function(goban) {
 };
 
 Goban.drawer.prototype.recalculatePointPositions = function(goban) {
-    var padding = goban.width*0.05;
-    var doublePadding = (this.opts.coords ? padding : 0)*2;
-    var ratioX = (goban.width-doublePadding) / goban.opts.geometry.width;
-    var ratioY = (goban.height-doublePadding) / goban.opts.geometry.height;
+    var drawingWidth = goban.width;
+    var drawingHeight = goban.height;
+    var lineWidthAddition = this.opts.lineWidth < 1
+        ? Math.ceil(this.opts.lineWidth)
+        : Math.round(this.opts.lineWidth);
+    if(this.opts.exteriorLines) {
+        drawingWidth -= lineWidthAddition;
+        drawingHeight -= lineWidthAddition;
+    } else {
+        drawingWidth += lineWidthAddition;
+        drawingHeight += lineWidthAddition;
+    }
+    var geometryWidth = goban.opts.geometry.width;
+    var geometryHeight = goban.opts.geometry.height;
+    geometryWidth += this.opts.padding*4;
+    geometryHeight += this.opts.padding*4;
+    if(this.opts.coords) {
+        geometryWidth += 6;
+        geometryHeight += 6;
+    }
+
+    var ratioX = drawingWidth / geometryWidth;
+    var ratioY = drawingHeight / geometryHeight;
     for(var i=0; i<goban.points.length; i++) {
         var point = goban.points[i];
-        point.x = point.originalX * ratioX;
+
+        var originalX = point.originalX;
+        var originalY = point.originalY;
+
+        if(this.opts.coords) {
+            originalX += 3;
+            originalY += 3;
+        }
+        originalX += this.opts.padding*2;
+        originalY += this.opts.padding*2;
+
+        point.x = originalX * ratioX;
+        if(this.opts.exteriorLines) {
+            point.x += lineWidthAddition;
+        }
         point.x = Math.round(point.x*2)/2;
         if((point.x/0.5) % 2 == 1) {
             point.x += 0.5;
         }
-        point.y = point.originalY * ratioY;
+        point.y = originalY * ratioY;
+        if(this.opts.exteriorLines) {
+            point.y += lineWidthAddition;
+        }
         point.y = Math.round(point.y*2)/2;
         if((point.y/0.5) % 2 == 1) {
             point.y += 0.5;
         }
-        point.x += this.opts.coords ? padding : 0;
-        point.y += this.opts.coords ? padding : 0;
         /*point.radius = point.originalRadius * ratio;
           point.hitArea.x = point.originalHitArea.x * ratio;
           point.hitArea.y = point.originalHitArea.y * ratio;
@@ -442,12 +478,9 @@ Goban.drawer.prototype.redraw = function(goban) {
             }
         }
 
+        var drawTheseStars = [];
         if(point.hasStar && this.opts.stars) {
-            ctx.beginPath();
-            ctx.arc(point.x-0.5, point.y-0.5, point.radius*0.25, 0, 2 * Math.PI, false);
-            ctx.fillStyle = this.opts.starStyle;
-            ctx.fill();
-            ctx.fillStyle = this.opts.strokeStyle;
+            drawTheseStars.push(point);
         }
 
         for(var j=0; j<point.neighbours.length; j++) {
@@ -463,6 +496,14 @@ Goban.drawer.prototype.redraw = function(goban) {
                 ctx.stroke();
             }
         }
+        for(var j=0; j<drawTheseStars.length; j++) {
+            var point = drawTheseStars[j];
+            ctx.beginPath();
+            ctx.arc(point.x-0.5, point.y-0.5, point.radius*0.25, 0, 2 * Math.PI, false);
+            ctx.fillStyle = this.opts.starStyle;
+            ctx.fill();
+            ctx.fillStyle = this.opts.strokeStyle;
+        }
     }
 }
 
@@ -471,8 +512,8 @@ Goban.drawer.prototype.redraw = function(goban) {
 Goban.geometry = {
     square: function(size) {
         var points = [];
-        var height = (size*2) + 2;
-        var width = (size*2) + 2;
+        var height = (size-1)*2;
+        var width = (size-1)*2;
         var neighbours = function(x, y, i) {
             var points = [];
             if(y != 0) {
@@ -491,7 +532,7 @@ Goban.geometry = {
         };
         for(var y=0, i=0; y<size; y++) {
             for(var x=0; x<size; x++, i++) {
-                points.push([2+x*2, 2+y*2, neighbours(x, y, i)]);
+                points.push([x*2, y*2, neighbours(x, y, i)]);
             }
         }
         var stars = [];

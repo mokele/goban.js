@@ -1,5 +1,10 @@
 var Goban = function(opts) {
-    this.opts = $.extend(Goban.defaultOpts, opts ? opts : {});
+    this.opts = opts;
+    for(var k in Goban.defaultOpts) {
+        if(this.opts[k] === undefined) {
+            this.opts[k] = Goban.defaultOpts[k];
+        }
+    }
     if(!this.opts.drawer) {
         this.opts.drawer = new Goban.drawer();
     }
@@ -323,18 +328,35 @@ Goban.prototype.getPoint = function(x, y) {
 
 
 Goban.drawer = function(opts) {
-    this.opts = $.extend(Goban.drawer.defaultOpts, opts ? opts : {});
+    this.opts = opts;
+    for(var k in Goban.drawer.defaultOpts) {
+        if(this.opts[k] === undefined) {
+            this.opts[k] = Goban.drawer.defaultOpts[k];
+        }
+    }
+    if(typeof this.opts.lineWidth != 'function') {
+        var lineWidth = this.opts.lineWidth;
+        this.opts.lineWidth = function(_,_) {
+            return lineWidth;
+        }
+    }
+    if(typeof this.opts.strokeStyle != 'function') {
+        var strokeStyle = this.opts.strokeStyle;
+        this.opts.strokeStyle = function(_,_) {
+            return strokeStyle;
+        }
+    }
 }
 Goban.drawer.defaultOpts = {
     coordFontFamily: 'Arial',
     lineWidth: 0.5,
-    //coordStyle: defaults to same as lines (strokeStyle)
+    coordStyle: '#333',
     coords: true,
     strokeStyle: '#333',
     starStyle: '#333',
     stars: true,
     exteriorLines: true,
-    padding: 1
+    padding: 0
 };
 Goban.drawer.prototype.recalculateSize = function(goban) {
     this.recalculatePointPositions(goban);
@@ -379,9 +401,10 @@ Goban.drawer.prototype.recalculatePointRadius = function(goban) {
 Goban.drawer.prototype.recalculatePointPositions = function(goban) {
     var drawingWidth = goban.width;
     var drawingHeight = goban.height;
-    var lineWidthAddition = this.opts.lineWidth < 1
-        ? Math.ceil(this.opts.lineWidth)
-        : Math.round(this.opts.lineWidth);
+    //var lineWidthAddition = this.opts.lineWidth < 1
+    //    ? Math.ceil(this.opts.lineWidth)
+    //    : Math.round(this.opts.lineWidth);
+    var lineWidthAddition = 1;
     if(this.opts.exteriorLines) {
         drawingWidth -= lineWidthAddition;
         drawingHeight -= lineWidthAddition;
@@ -443,15 +466,15 @@ Goban.drawer.prototype.redraw = function(goban) {
     //ctx.translate(0.5, 0.5);
     ctx.strokeStyle = this.opts.strokeStyle;
     ctx.fillStyle = this.opts.strokeStyle;
-    ctx.lineWidth = this.opts.lineWidth;
+
+    //ctx.lineWidth = this.opts.lineWidth;
+
     ctx.clearRect(0, 0, goban.width, goban.height);
     var lines = {};
     for(var i=0; i<goban.points.length; i++) {
         var point = goban.points[i];
         if(this.opts.coords) {
-            if(this.opts.coordStyle) {
-                ctx.fillStyle = this.opts.coordStyle;
-            }
+            ctx.fillStyle = this.opts.coordStyle;
             var fontSize = point.radius;
             ctx.font = fontSize+'px '+this.opts.coordFontFamily;
             var xy = goban.pointToXY(point.id);
@@ -473,9 +496,6 @@ Goban.drawer.prototype.redraw = function(goban) {
                 var y = point.y+(fontSize/3);
                 ctx.fillText(xy.y+1, x, y);
             }
-            if(this.opts.coordStyle) {
-                ctx.fillStyle = this.opts.strokeStyle;
-            }
         }
 
         var drawTheseStars = [];
@@ -490,6 +510,9 @@ Goban.drawer.prototype.redraw = function(goban) {
             if(!lines[key]) {
                 lines[key] = true
                 ctx.beginPath();
+                ctx.lineWidth = this.opts.lineWidth(point.id, neighbour.id);
+                ctx.strokeStyle = this.opts.strokeStyle(point.id, neighbour.id);
+
                 ctx.moveTo(point.x-0.5, point.y-0.5);
                 ctx.lineTo(neighbour.x-0.5, neighbour.y-0.5);
                 ctx.closePath();
@@ -502,7 +525,6 @@ Goban.drawer.prototype.redraw = function(goban) {
             ctx.arc(point.x-0.5, point.y-0.5, point.radius*0.25, 0, 2 * Math.PI, false);
             ctx.fillStyle = this.opts.starStyle;
             ctx.fill();
-            ctx.fillStyle = this.opts.strokeStyle;
         }
     }
 }

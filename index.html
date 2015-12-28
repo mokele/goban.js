@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>goban</title>
+
+<link href="goban.css" rel="stylesheet" type="text/css">
+
+<style type="text/css">
+#goban {
+  position: relative;
+  overflow: hidden;
+  display: block;
+  width: 400px;
+  height: 400px;
+  background: whiteSmoke;
+}
+.goban {
+  background: white;
+  position: absolute;
+  cursor: pointer;
+  -left: 0;
+}
+.goban .number {
+  font-family: Arial;
+}
+</style>
+
+</head>
+<body>
+
+<div id="goban"></div>
+
+
+<script src="jquery.min.js"></script>
+
+<script src="goban.js"></script>
+<!--script src="../roundgoban/roundgoban.js"></script-->
+
+<script type="text/javascript">
+$(document).ready(function() {
+  var goban = new Goban({
+    drawer: new Goban.drawer({
+      coords: false,
+      padding: 0.6
+    }),
+    geometry: Goban.geometry.square(9)
+  });
+  var tile = 'b';
+  var number = 1;
+
+  var getNumberElement = function(tile, number) {
+    var color = tile == 'b' ? 'black' : 'white';
+    var el = $('<span class="number number-'+color+'"></span>');
+    el.text(number+'');
+    return el;
+  };
+  goban.hoverAndPlace(
+    'ghost', function() {
+      return $('<img src="Go_' + tile + '.svg" class="ghost"/>');
+    },
+    'stone', function() {
+      return {
+        stone: tile,
+        element: $('<img src="Go_' + tile + '.svg" class="stone"/>')
+      };
+    },
+    function(pointId) {
+      goban.addToPoint(pointId, 'number', getNumberElement(tile, number));
+      number++;
+      tile = tile=='b'?'w':'b';
+    }
+  );
+  goban.element.addClass('numbers');
+  $('#goban').append(goban.element);
+  goban.fit();
+  //goban.setViewport(5, 8, 77, 80);
+});
+</script>
+
+</body>
+</html>

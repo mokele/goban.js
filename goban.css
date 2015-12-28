@@ -4,7 +4,8 @@
 }
 .goban .stone,
 .goban .focused,
-.goban .ghost{
+.goban .ghost,
+.goban .number {
     position: absolute;
 }
 .goban .ghost {
@@ -19,11 +20,17 @@
 }
 .goban .number {
     display: none !important;
+    z-index: 100;
+    text-align: center;
+    vertical-align: middle;
+}
+.goban .number-black {
+    color: white;
+}
+.goban .number-white {
+    color: #222;
 }
 .goban.numbers .number {
     display: block !important;
     z-index: 150;
-}
-.goban.numbers .overlay {
-    display: none !important;
 }

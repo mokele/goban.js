@@ -19,6 +19,7 @@ var Goban = function(opts) {
     };
 
     if(opts.geometry) {
+        this.geometry = opts.geometry;
         var points = this.points;
         var size = this.size();
         (function() {
@@ -57,8 +58,10 @@ var Goban = function(opts) {
         })();
     }
     var mousemove = $.proxy(function(e) {
-        var container = this.element.parent();
+        var container = this.element;
+        //var container = this.element.parent();
         var containerOffset = container.offset();
+
         var x = e.pageX - containerOffset.left;
         var y = e.pageY - containerOffset.top;
         var point = this.getPoint(x, y);
@@ -217,18 +220,12 @@ Goban.prototype.addToPoint = function(id, name, element, stoneValue) {
     if(point.elements[name]) {
         this.removeFromPoint(id, name);
     }
-    var diameter = point.radius * 2;
-    element.width(diameter);
-    element.height(diameter);
-    element.css({
-        left: point.x - point.radius - 0.5,
-        top: point.y - point.radius - 0.5
-    });
     point.elements[name] = element;
     if(stoneValue !== undefined) {
         point.stoneValue = stoneValue;
     }
     this.element.append(element);
+    this.repositionPoint(point, true);
 };
 Goban.prototype.removeFromPoint = function(id, name, andStoneValue) {
     var point = this.points[id];
@@ -272,19 +269,21 @@ Goban.prototype.pointToXY = function(point) {
 };
 
 
-Goban.prototype.repositionPoint = function(point) {
+Goban.prototype.repositionPoint = function(point, justAdded) {
     for(var k in point.elements) {
-        this.repositionElement(point.elements[k], point);
+        this.repositionElement(point.elements[k], point, justAdded);
     }
 };
-Goban.prototype.repositionElement = function(el, point) {
+Goban.prototype.repositionElement = function(el, point, justAdded) {
     var diameter = (point.radius * 2) + 1;
-    el.remove(); // weird resize fix - only likes to be resized while not on the page
+    if(!justAdded) {
+        el.remove(); // weird resize fix - only likes to be resized while not on the page
+    }
     el.width(diameter);
     el.height(diameter);
     var left = (point.x - point.radius) - 0.5;
     var top = (point.y - point.radius) - 0.5;
-    var fontSize = point.radius;
+    var fontSize = point.radius * 1.4;
     el.css({
         fontSize: fontSize+'px',
         lineHeight: diameter+'px',
@@ -293,9 +292,55 @@ Goban.prototype.repositionElement = function(el, point) {
     });
     this.element.append(el); // weird resize fix
 };
+Goban.prototype.setViewport = function() {
+    this.viewport = arguments;
+
+    var parent = this.element.parent();
+    if(!parent.size()) {
+        console.log('no goban parent element to alter viewport');
+        return false;
+    }
+    var points = [];
+    var pointsX = [];
+    var pointsY = [];
+    for(var i=0; i<arguments.length; i++) {
+        var point = this.points[arguments[i]];
+        pointsX.push(point.x - 1);
+        pointsY.push(point.y - 1);
+        points.push(point);
+    }
+    var minX = Math.min.apply(undefined, pointsX);
+    var maxX = Math.max.apply(undefined, pointsX);
+    var minY = Math.min.apply(undefined, pointsY);
+    var maxY = Math.max.apply(undefined, pointsY);
+
+    var width = (maxX+1 - minX+1) + points[0].radius*3 + 2;
+    var height = (maxY+1 - minY+1) + points[0].radius*3 + 2;
+    width = Math.min(width, this.originalWidth);
+    height = Math.min(height, this.originalHeight);
+
+    console.log(minX, maxX, minY, maxY);
+    parent.width(width);
+    console.log(width, height);
+    parent.height(height);
+    //this.element.css({top: minY, bottom: maxY, left: minX, right: maxX});
+    var right = this.originalWidth - (maxX+1);
+    console.log(right);
+    this.element.css({top: 0, right: 0});
+
+    // TODO alter width/height of parent()
+    // and change top,right,bottom,left of this.element
+};
 Goban.prototype.recalculateSize = function() {
-    this.width = this.element.parent().width();
-    this.height = this.element.parent().height();
+    var width = this.element.parent().width();
+    var height = this.element.parent().height();
+    if(!this.originalWidth) {
+        this.originalWidth = width;
+        this.originalHeight = height;
+    }
+    var max = Math.max(width, height);
+    this.width = max;
+    this.height = max;
     this.element.css({
         width: this.width,
         height: this.height

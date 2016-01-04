@@ -5,6 +5,7 @@
 .goban .focused,
 .goban .ghost,
 .goban .symbol,
+.goban .glyphicon,
 .goban .number,
 .goban .point-label {
     position: absolute;
@@ -19,6 +20,7 @@
     z-index: 100;
 }
 .goban .point-label,
+.goban .glyphicon,
 .goban .number {
     z-index: 150;
     text-align: center;
@@ -55,6 +57,6 @@
 }
 .goban .ghost {
     opacity:0.65;
-    z-index: 200;
+    z-index: 200 !important;
     cursor: pointer;
 }

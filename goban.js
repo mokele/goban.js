@@ -217,6 +217,10 @@ Goban.prototype.getElementFromPoint = function(id, name) {
     var point = this.points[id];
     return point.elements[name];
 };
+Goban.prototype.getElementsFromPoint = function(id) {
+    var point = this.points[id];
+    return point.elements;
+};
 Goban.prototype.addToPoint = function(id, name, element, stoneValue) {
     var point = this.points[id];
     if(point.elements[name]) {

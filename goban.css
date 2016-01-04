@@ -1,15 +1,14 @@
 .goban {
     position: relative;
-    background: #DCB35C;
 }
 .goban .stone,
 .goban .focused,
-.goban .ghost{
+.goban .ghost,
+.goban .symbol,
+.goban .glyphicon,
+.goban .number,
+.goban .point-label {
     position: absolute;
-}
-.goban .ghost {
-    opacity:0.5;
-    z-index: 50;
 }
 .goban .stone {
     z-index: 50;
@@ -17,8 +16,37 @@
 .goban .focused {
     z-index: 100;
 }
+.goban .symbol {
+    z-index: 100;
+}
+.goban .point-label,
+.goban .glyphicon,
+.goban .number {
+    z-index: 150;
+    text-align: center;
+    vertical-align: middle;
+}
+.goban .point-label {
+}
 .goban .number {
     display: none !important;
+}
+.goban .point-label-none {
+    -font-weight: bold;
+    -ms-transform: scale(0.9,0.9); /* IE 9 */
+    -webkit-transform: scale(0.9,0.9); /* Safari */
+    background: white;
+    transform: scale(0.9,0.9);
+    transform: scale(0.9,0.9);
+    color: #222;
+}
+.goban .point-label-black,
+.goban .number-black {
+    color: white;
+}
+.goban .point-label-white,
+.goban .number-white {
+    color: #222;
 }
 .goban.numbers .number {
     display: block !important;
@@ -26,4 +54,9 @@
 }
 .goban.numbers .overlay {
     display: none !important;
+}
+.goban .ghost {
+    opacity:0.65;
+    z-index: 200 !important;
+    cursor: pointer;
 }

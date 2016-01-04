@@ -1,77 +1,301 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <meta charset="UTF-8">
-  <title>Goban.js</title>
-  <link href="goban.css" rel="stylesheet">
+<meta charset="UTF-8">
+<title>goban</title>
+
+<link href="goban.css" rel="stylesheet" type="text/css">
+
 <style type="text/css">
-body {
+.goban-container {
+  position: absolute;
+  width: 400px;
+  height: 400px;
 }
-.goban {
+.goban .label,
+.goban .number {
+  font-family: Arial;
+}
+#gr-1-10 {
+  width: 400px;
+  height: 400px;
+}
+#v-5 {
+  width: 215px;
+  height: 400px;
+}
+#v-1 {
+  width: 235px;
+  height: 215px;
+}
+#v-1 .goban-container {
+  right: 0;
+  bottom: 0;
+}
+#ws {
+  width: 400px;
+  height: 400px;
 }
 #goban {
-  display: block;
-  position: absolute;
-  margin: 1em auto;
+  cursor: pointer;
+  width: 400px;
+  height: 400px;
 }
-#goban .goban {
-  background: white;
+
+#goban,
+#v-1,
+#v-5,
+#ws,
+#gr-1-10 {
+  margin: 0 15px 15px 0;
+  display: inline-block;
+  overflow: hidden;
+  position: relative;
 }
 </style>
+
 </head>
 <body>
 
-
-  <div id="goban" style="position:relative;"> 
-  </div>
-
-  <script src="//ajax.googleapis.com/ajax/libs/jquery/1.8.2/jquery.min.js"></script>
-<script type="text/javascript" src="goban.js"></script>
+<script src="jquery.min.js"></script>
+<script src="goban.js"></script>
 
 <script type="text/javascript">
-var goban = new Goban({
-  drawer: new Goban.drawer({showCoords: true}),
-  geometry: Goban.geometry.square(19)
+var is19Edge = Goban.utils.isEdge(19);
+var drawer = new Goban.drawer({
+  coords: false,
+  padding: 0.6,
+  lineWidth: function(a, b) {
+    return is19Edge(a, b) ? 1.3 : 0.5;
+  },
+  strokeStyle: function(a, b) {
+    return is19Edge(a, b) ? '#000' : '#555';
+  }
 });
-var tile = 'b';
-goban.hoverPlaceAndFocus(
-  'ghost', function() {
-    return $('<img src="http://mokele.github.com/go-svg/Go_' + tile + '.svg" class="ghost"/>');
-  },
-  'stone', function() {
-    return $('<img src="http://mokele.github.com/go-svg/Go_' + tile + '.svg" class="stone"/>');
-  },
-  'focused', function() {
-    return $('<img src="http://mokele.github.com/go-svg/Go_placed' + tile + '.svg" class="focused"/>');
-  },
-  function(pointId) {
-    tile = tile=='b'?'w':'b';
+var getStoneElement = function(tile) {
+  return $('<img src="Go_' + tile + '.svg" class="stone"/>')
+};
+var getLabelElement = function(tile, number) {
+  var color = '';
+  if(tile) {
+    color = tile == 'b' ? 'black' : 'white';
+  } else {
+    color = 'none';
   }
-);
-$('#goban').append(goban.element);
+  var el = $('<span class="label label-'+color+'"></span>');
+  el.text(number+'');
+  return el;
+};
+var getNumberElement = function(tile, number) {
+  var color = tile == 'b' ? 'black' : 'white';
+  var el = $('<span class="number number-'+color+'"></span>');
+  el.text(number+'');
+  return el;
+};
+var getSymbolElement = function(tile, symbol) {
+  var oppositeTile = tile == 'b' ? 'w' : 'b';
+  return $('<img src="symbol_' + symbol + oppositeTile + '.svg" class="symbol"/>')
+};
+var Black = function() {
+  return getStoneElement('b');
+};
+var White = function() {
+  return getStoneElement('w');
+};
+var BlackNumber = function(n) {
+  return getNumberElement('b', n);
+};
+var WhiteNumber = function(n) {
+  return getNumberElement('w', n);
+};
+</script>
 
+<div id="debug"></div>
+
+<div id="ws"><div class="goban-container"></div></div>
+<script type="text/javascript">
 $(function() {
-  var fit = function() {
-    var el = goban.element.parent();
+  var goban = new Goban({
+    drawer: drawer,
+    geometry: Goban.geometry.square(19)
+  });
+  $('#ws .goban-container').append(goban.element);
 
-    var width = $(window).width();
-    var height = $(window).height();
-    var min = Math.min(width, height);
-
-    var pad = el.innerHeight() - el.outerHeight();
-    var gobanHeight = min - pad - (el.offset().top*2) - 4;
-
-    if(width - gobanHeight < 100) {
-        gobanHeight = width - 100;
+  goban.element.addClass('numbers');
+  goban.fit();
+  var url = 'http://kifu.io/api/mokele/1cdc2e606a4a45be950efa16d7483031?entries=true&refs=true';
+  $.get(url, function(data) {
+    var entries = data.entries;
+    for(var i=0; i<entries.length; i++) {
+      var move = entries[i];
+      var tile = move.value.stone.white ? 'w' : 'b';
+      var point = move.point;
+      var number = move.number + 1;
+      var stoneElement = getStoneElement(tile);
+      var numberElement = getNumberElement(tile, number);
+      goban.addToPoint(point, 'stone', stoneElement);
+      goban.addToPoint(point, 'number', numberElement);
     }
-    el.innerHeight(gobanHeight);
-    el.innerWidth(gobanHeight);
+  });
+});
+</script>
 
-    goban.fit();
-  }
-  $(window).ready(fit);
-  $(window).resize(fit);
-})
+<div id="gr-1-10"><div class="goban-container"></div></div>
+<script type="text/javascript">
+$(function() {
+  var goban = new Goban({
+    drawer: drawer,
+    geometry: Goban.geometry.square(19)
+  });
+  $('#gr-1-10 .goban-container').append(goban.element);
+  goban.addToPoint(40, 'label', getLabelElement(undefined, 'A'));
+  goban.addToPoint(41, 'stone', Black());
+  goban.addToPoint(41, 'number', BlackNumber(3));
+
+  goban.addToPoint(59, 'label', getLabelElement(undefined, 'B'));
+  goban.addToPoint(62, 'stone', Black());
+  goban.addToPoint(62, 'number', BlackNumber(9));
+  goban.addToPoint(72, 'stone', White());
+  goban.addToPoint(72, 'number', WhiteNumber(2));
+
+  goban.addToPoint(79, 'stone', White());
+  goban.addToPoint(79, 'number', WhiteNumber(6));
+
+  goban.addToPoint(99, 'stone', White());
+  goban.addToPoint(99, 'number', WhiteNumber(8));
+
+  goban.addToPoint(116, 'stone', Black());
+  goban.addToPoint(116, 'number', BlackNumber(7));
+
+  goban.addToPoint(136, 'stone', White());
+  goban.addToPoint(136, 'number', WhiteNumber(10));
+
+  goban.addToPoint(287, 'stone', Black());
+  goban.addToPoint(287, 'number', BlackNumber(1));
+  goban.addToPoint(300, 'stone', White());
+  goban.addToPoint(300, 'number', WhiteNumber(4));
+
+  goban.addToPoint(308, 'stone', Black());
+  goban.addToPoint(308, 'number', BlackNumber(5));
+
+  goban.element.addClass('numbers');
+  goban.fit();
+});
+</script>
+
+<div id="v-5"><div class="goban-container"></div></div>
+<script type="text/javascript">
+$(function() {
+  // 22
+  // 39, 40, 41, 42, 43
+  // 59, 60, 62, 63
+  // 78, 79
+  // 99
+  // 116
+  // 136
+  // 154
+  // 287
+  // 308
+  var goban = new Goban({
+    drawer: drawer,
+    geometry: Goban.geometry.square(19)
+  });
+  $('#v-5 .goban-container').append(goban.element);
+
+  goban.addToPoint(22, 'stone', Black());
+  goban.addToPoint(22, 'number', BlackNumber(6));
+
+  goban.addToPoint(39, 'stone', Black());
+  goban.addToPoint(39, 'number', BlackNumber(8));
+  goban.addToPoint(40, 'stone', White());
+  goban.addToPoint(40, 'number', WhiteNumber(1));
+  goban.addToPoint(41, 'stone', Black());
+  goban.addToPoint(42, 'stone', White());
+  goban.addToPoint(42, 'number', WhiteNumber(5));
+  goban.addToPoint(43, 'stone', White());
+  goban.addToPoint(43, 'number', WhiteNumber(7));
+
+  goban.addToPoint(59, 'stone', Black());
+  goban.addToPoint(59, 'number', BlackNumber(2));
+  goban.addToPoint(60, 'stone', White());
+  goban.addToPoint(60, 'number', WhiteNumber(3));
+  goban.addToPoint(62, 'stone', Black());
+  goban.addToPoint(63, 'stone', White());
+  goban.addToPoint(63, 'number', WhiteNumber(9));
+
+  goban.addToPoint(78, 'stone', Black());
+  goban.addToPoint(78, 'number', BlackNumber(4));
+  goban.addToPoint(79, 'stone', White());
+
+  goban.addToPoint(99, 'stone', White());
+  goban.addToPoint(116, 'stone', Black());
+  goban.addToPoint(136, 'stone', White());
+  goban.addToPoint(136, 'symbol', getSymbolElement('w', 'triangle'));
+  goban.addToPoint(154, 'stone', Black());
+  goban.addToPoint(154, 'symbol', getSymbolElement('b', 'triangle'));
+
+  goban.addToPoint(287, 'stone', Black());
+  goban.addToPoint(308, 'stone', Black());
+
+  goban.element.addClass('numbers');
+  goban.fit();
+});
+</script>
+
+<div id="v-1"><div class="goban-container"></div></div>
+<script type="text/javascript">
+$(function() {
+  var goban = new Goban({
+    drawer: drawer,
+    geometry: Goban.geometry.square(19)
+  });
+  $('#v-1 .goban-container').append(goban.element);
+  goban.fit();
+});
+</script>
+
+<div id="goban"><div class="goban-container"></div></div>
+
+<!--script src="../roundgoban/roundgoban.js"></script-->
+
+<script type="text/javascript">
+$(document).ready(function() {
+  var goban = new Goban({
+    drawer: drawer,
+    geometry: Goban.geometry.square(19)
+  });
+  var tile = 'b';
+  var number = 1;
+
+  var getNumberElement = function(tile, number) {
+    var color = tile == 'b' ? 'black' : 'white';
+    var el = $('<span class="number number-'+color+'"></span>');
+    el.text(number+'');
+    return el;
+  };
+  goban.hoverAndPlace(
+    'ghost', function() {
+      return $('<img src="Go_' + tile + '.svg" class="ghost"/>');
+    },
+    'stone', function() {
+      return {
+        stone: tile,
+        element: $('<img src="Go_' + tile + '.svg" class="stone"/>')
+      };
+    },
+    function(pointId) {
+      $('#debug').append(pointId + ', ');
+      goban.addToPoint(pointId, 'number', getNumberElement(tile, number));
+      number++;
+      tile = tile=='b'?'w':'b';
+    }
+  );
+  goban.element.addClass('numbers');
+  $('#goban .goban-container').append(goban.element);
+  goban.fit();
+  //goban.setViewport(5, 8, 77, 80);
+});
+
 </script>
 
 </body>
